@@ -427,6 +427,171 @@ spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
 
 👉 Serviceに寄せる
 
+## ■依存関係を注入(DI)について
+
+### ◯まず「依存関係」とは何か
+
+```java
+@Service
+@RequiredArgsConstructor
+public class ProjectService {
+
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+}
+```
+
+この場合：
+
+- ProjectService は ProjectRepository を使う
+- ProjectService は UserRepository を使う
+
+👉 つまり
+
+ProjectService はこれらに依存している
+
+### ◯DIありとなしの違い
+
+#### ・DIしない場合（昔ながら）
+
+```java
+public class ProjectService {
+
+    private ProjectRepository projectRepository = new ProjectRepository();
+
+}
+```
+
+これの問題：
+
+- 自分でインスタンスを作ってしまう
+- 差し替えができない
+- テストしづらい
+
+#### ・DIあり（Spring）
+
+```java
+@RequiredArgsConstructor
+public class ProjectService {
+
+    private final ProjectRepository projectRepository;
+
+}
+```
+
+👉 これだけでOK
+
+なぜかというと：
+
+- Springが勝手に ProjectRepository を作る
+- それをコンストラクタで渡してくれる
+
+### ◯裏で何が起きているか
+
+#### ① SpringがBeanを作る
+
+```java
+@Repository
+public interface ProjectRepository ...
+```
+
+👉 Springがこれを見てインスタンス生成
+
+#### ② Serviceも作る
+
+```java
+@Service
+public class ProjectService ...
+```
+
+👉 これもSpringが管理
+
+#### ③ コンストラクタに注入
+
+```java
+@RequiredArgsConstructor により：
+
+public ProjectService(ProjectRepository projectRepository, UserRepository userRepository) {
+  this.projectRepository = projectRepository;
+  this.userRepository = userRepository;
+}
+```
+
+が自動生成される
+
+👉 Springがここに値を渡す
+
+### ◯できるようになること（ここが本題）
+
+#### ① 疎結合になる（超重要）
+
+Serviceは「Repositoryを使う」ことだけ知っている<br>
+「どう作るか」は知らない
+
+👉 設計がきれいになる
+
+#### ② テストがめちゃくちゃ楽
+
+例：
+
+```java
+ProjectRepository mockRepo = mock(ProjectRepository.class);
+ProjectService service = new ProjectService(mockRepo, mockUserRepo);
+```
+
+👉 DBなしでテストできる
+
+#### ③ 実装の差し替えが簡単
+
+例えば：
+
+- 本番 → DB Repository
+- テスト → Mock Repository
+
+👉 コードを変えずに切り替え可能
+
+#### ④ Springの機能と連携できる
+
+- トランザクション管理（@Transactional）
+- キャッシュ
+- AOP
+
+👉 DI前提で動く
+
+### ◯よくある誤解
+
+#### ❌ 「DI = ただのnew省略」
+
+→ 違う
+
+👉 設計思想そのもの
+
+#### ❌ 「なくても動くから不要」
+
+- 小さいアプリならOK<
+- 大きくなると地獄
+
+### ◯イメージで理解する
+
+#### ・DIなし
+
+```
+ProjectService
+  └── 自分でRepositoryを作る
+```
+
+#### ・DIあり
+
+```
+Spring（工場）
+  ├── ProjectRepositoryを作る
+  └── UserRepositoryを作る
+        ↓
+ProjectServiceに渡す
+```
+
+👉 Serviceは「使うだけ」
+
 ## ■参考URL
 
 https://qiita.com/ist-a-ku/items/1d278619f241f4800bb2
@@ -484,19 +649,6 @@ Spring Bootで、CLAUDE.mdの「DB設計」に記載しているEntityクラス�
 
 ```
 Spring Data JPAを使用してRepositoryを作成してください。
-
-① TaskRepository
-
-- JpaRepository<Task, Long>
-
-② WorkLogRepository
-
-- JpaRepository<WorkLog, Long>
-
-【追加要件】
-・WorkLogRepositoryに以下のメソッドを追加
-
-- 指定したtaskIdの作業ログ一覧取得
 ```
 
 ## ■ ステップ③ Service（ロジック）
@@ -505,19 +657,6 @@ Spring Data JPAを使用してRepositoryを作成してください。
 
 ```
 Serviceクラスを作成してください。
-
-① TaskService
-
-- タスク一覧取得
-- タスク作成
-- タスク更新
-- タスク削除
-
-② WorkLogService
-
-- 作業ログ登録
-- タスクごとの作業ログ一覧取得
-- タスクごとの合計工数算出
 
 【要件】
 ・@Serviceを使用
@@ -604,3 +743,285 @@ Next.jsからSpring Boot APIに接続してください。
 - 工数入力UI
 - 合計時間表示
 - ステータス管理（TODO / DOING / DONE）
+
+# Spring Boot実装
+
+## ■@EnableJpaAuditing (TaskManagementApplication)
+
+created_at / updated_at の自動設定には Spring Data JPA の Auditing機能を使う。<br>
+@EnableJpaAuditing はそのスイッチ。<br>
+これがないと後述の @CreatedDate / @LastModifiedDate が機能しない。
+
+## ■Entity (DBのテーブル)
+
+### ◯アノテーション
+
+| 項目                                              | 説明                                                                                                      |
+| :------------------------------------------------ | :-------------------------------------------------------------------------------------------------------- |
+| @Entity                                           | このクラスがDBテーブルに対応することをJPAに伝える                                                         |
+| @Table(name = "users")                            | テーブル名を明示。省略するとクラス名になる                                                                |
+| @EntityListeners(AuditingEntityListener.class)    | Auditing機能を有効化。これがないと@CreatedDate 等が動かない                                               |
+| @Id + @GeneratedValue                             | 主キー＋自動採番（PostgreSQLのSERIAL相当）                                                                |
+| @Column(updatable = false)                        | created_at は INSERT 時のみ設定し、UPDATEで変更させない                                                   |
+| @OneToMany(mappedBy = "owner")                    | Projectの owner。フィールドが外部キーの主導権を持つことを示す                                             |
+| @Getter @Setter @NoArgsConstructor                | @Data を使わない理由は後述                                                                                |
+| @Column(name = "password_hash", nullable = false) | フィールド名と実際のDBのカラム名が一致しないときnameにカラム名を指定する                                  |
+| @Enumerated(EnumType.STRING)                      | DBにenumを "TODO" のような文字列で保存。ORDINAL（数値）は避ける（enumの順番を変えるとデータが壊れるため） |
+| BigDecimal forestimatedHours                      | 工数は 1.5時間 のような小数を扱うため Double より精度の高いBigDecimal を使用                              |
+| LocalDate for dueDate                             | 日付のみ（時刻なし）なので LocalDate。created_at は日時なのでLocalDateTime                                |
+
+#### ※なぜ @Data を使わないか
+
+LombokのアノテーションにはEntityに向いていないものがある。
+
+```java
+@Data = @Getter + @Setter + @ToString + @EqualsAndHashCode + @RequiredArgsConstructor
+```
+
+- @ToString → 双方向リレーション（User ↔ Project ↔ Task）があると 無限ループでStackOverflowが発生
+- @EqualsAndHashCode → JPAのプロキシオブジェクト（遅延ロード用のラッパー）と比較すると正しく動かないケースがある
+
+そのため、Entityには @Getter @Setter @NoArgsConstructor の組み合わせが安全。
+
+### ◯外部キーの管理
+
+```java
+// User.java
+@OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
+private List<Project> projects = new ArrayList<>();
+
+// Project.java
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "owner_id", nullable = false)
+private User owner;  // ← "owner" というフィールド名
+```
+
+#### ・OneToMany
+
+「1つのUserが複数のProjectを持つ」というリレーションを表す。
+
+```
+User(1) ─── Project(N)
+```
+
+#### ・mappedBy = "owner" の意味
+
+「外部キーの管理はProject側の owner フィールドに任せる」 という宣言。
+
+DBの外部キー（owner_id）は Projectテーブルにあるので、その管理責任はProject側にある。<br>
+User側は「自分は管理しない、Projectの ownerフィールドを見ろ」と指示しているイメージ。
+
+```
+[users テーブル]
+id | name | ...
+
+[projects テーブル]
+id | name | owner_id(FK)
+                ↑
+                ここで外部キーを持っている
+```
+
+mappedBy を書かないと、JPAは「両方が外部キーを管理しようとしている」と誤解し、余分な中間テーブルを作ろうとしてしまう。
+
+#### ・cascade = CascadeType.ALL の意味
+
+「Userに対する操作をProjectにも連鎖させる」 という設定。
+
+| 操作                  | 挙動                            |
+| --------------------- | ------------------------------- |
+| Userを保存（persist） | 紐づくProjectも一緒に保存される |
+| Userを更新（merge）   | 紐づくProjectも一緒に更新される |
+| Userを削除（remove）  | 紐づくProjectも一緒に削除される |
+
+#### ・@ManyToOne(fetch = FetchType.LAZY) について
+
+デフォルトは EAGER（関連データを即時ロード）ですが、LAZY（必要になった時にロード）を明示している。<br>
+Projectを取得するたびにUserのデータまで引っ張ってきてしまうのを防ぎ、パフォーマンスが向上する。
+
+### ◯Entityを作ってSpring Bootを動かすと
+
+spring.jpa.hibernate.ddl-autoの設定によっては、**Hibernateが自動でテーブルを作成**してくれる。
+
+application-dev.propertiesに以下が設定されていれば、起動時にテーブルが作られる。
+
+```properties
+spring.jpa.hibernate.ddl-auto=update
+```
+
+## ■repositoryについて
+
+repositoryはDB操作を実装したもの。
+実装と言っても、実際にはInterfaceを実装するだけで良い。
+
+### ◯JpaRepository<Entity, ID型> を継承するだけでよい理由
+
+Spring Data JPA が以下のメソッドを自動生成してくれる。
+
+| メソッド       | 内容            |
+| -------------- | --------------- |
+| save(entity)   | INSERT / UPDATE |
+| findById(id)   | 主キーで1件取得 |
+| findAll()      | 全件取得        |
+| deleteById(id) | 主キーで削除    |
+
+自分で SQL を書く必要はない。
+
+👉️ JPAにより、実装量が格段に少なくなる。
+
+### ◯メソッド名によるクエリ自動生成
+
+```java
+List<Task> findByProjectId(Long projectId);
+```
+
+これもSQLを書いていないが、メソッド名のルールからSpringが自動的に以下のSQLを生成する。
+
+```sql
+SELECT \* FROM tasks WHERE project_id = ?
+```
+
+findBy + フィールド名 の形式で書くだけでOK。
+
+### ◯@Query を使う場面
+
+メソッド名では表現できない複雑なクエリは @Query で書く。
+
+```java
+@Query("SELECT COALESCE(SUM(w.hours), 0) FROM WorkLog w WHERE w.task.id = :taskId")
+BigDecimal sumActualHoursByTaskId(@Param("taskId") Long taskId);
+```
+
+#### ポイント：
+
+- これは JPQL（テーブル名ではなくEntityクラス名・フィールド名で書く SQL)
+- COALESCE(..., 0) はWorkLogが1件もない場合に null でなく 0 を返すための記述
+- このメソッドが後の「工数集計API（見積 vs 実績）」で使われる
+
+### ◯Optionalについて
+
+```java
+Optional<User> findByEmail(String email);
+```
+
+Optionalは**「値が存在しない可能性がある」**ことを明示するために使う。
+
+👉 「空かもしれない」というのが型で分かる。<br>
+👉️ NullPointerExceptionが発生しないように処置する必要があるから、NullPointerExceptionが発生するのを強制的に防ぐことができる。
+
+#### ・Opetionalが返ってくるときの処理例
+
+##### ① 値があるかチェック
+
+```java
+if (userOpt.isPresent()) {
+    User user = userOpt.get();
+}
+```
+
+##### ② よく使う書き方（推奨）
+
+```java
+User user = userOpt.orElseThrow(() -> new RuntimeException("ユーザが見つかりません"));
+```
+
+👉 見つからなければ例外
+
+##### ③ デフォルト値
+
+```java
+User user = userOpt.orElse(new User());
+```
+
+## ■Serviceについて
+
+アプリケーションの「核心となる業務処理」を担当する部分で、通常@Serviceアノテーションを付与したサービスクラスに実装される処理。<br>
+これは**ビジネスロジック**と呼ばれる。<br>
+データの計算、加工、条件分岐、外部システム連携などのルールを担い、コントローラー（入力）とリポジトリ（DB操作）を仲介する。
+
+Serviceクラスでは、Spring Bootで重要な、Repositoryクラスについて「依存関係の注入（DI）」の実装を行っている。<br>
+これにより、Repositoryクラスの実装が変わっても、Serviceクラスの処理には影響を与えない。<br>
+また、例えばテストでDBが使えない状況であっても、MockのRepostoryクラスのインスタンスを指定することで、Serviceクラスの試験を実施することができる。
+
+### ◯@Transactional(readOnly = true) を使う理由
+
+| アノテーション                  | 用途                     |
+| ------------------------------- | ------------------------ |
+| @Transactional                  | INSERT / UPDATE / DELETE |
+| @Transactional(readOnly = true) | SELECT のみ              |
+
+まず、@Transactionalをつけることで、1つのトランザクションで実行することを確約する。<br>
+また、例外発生したときは自動的にロールバックもしてくれる。
+
+**Controller-Service間で、1つのトランザクションで実行できているかを認識して実装する必要がある。**
+
+readOnly = true にすると Hibernate の最適化が効き、不要な変更検出（ダーティチェック）をスキップするため、参照系の処理が効率化される。
+
+## ■Controllerについて
+
+ControllerはHTTPリクエストの受け口となるクラス。
+
+```
+クライアント → [DTO] → Controller → Service → [Entity] → DB
+```
+
+### ◯DTOとEntityを分けている理由
+
+- DTO（Data Transfer Object）：APIの入出力専用のクラス。受け取りたい項目だけ定義できる
+- Entity：DBのテーブル構造に対応するクラス
+
+Entityをそのままリクエストで受け取ると、id や createdAt などクライアントに設定させてはいけないフィールドまで上書きできてしまうため、入力用にDTOを分けている。
+
+### ◯@RestController と @RequestMapping の関係
+
+#### ・@RestControllr
+
+@RestController は @Controller + @ResponseBodyの組み合わせ。<br>
+メソッドの戻り値を自動的にJSONに変換してレスポンスとして返す。
+
+👉️ REST APIは**データを返すAPI**だから、この組み合わせが良いということで、@RestControllerを使っている。
+
+- @Controller → Springのコントローラとして認識
+- @ResponseBody → 戻り値をそのままHTTPレスポンスにする
+
+#### ・@Controller
+
+@Controllerのみだと、画面(HTML)を返すAPIになる。
+
+👉️ 今回は**データ**を返したいので、やりたいこととは違う。
+
+### ◯@GetMapping / @PostMapping / @PutMapping
+
+@GetMapping / @PostMapping / @PutMapping はそれぞれHTTPメソッドに対応している。
+
+### ◯ResponseEntity を使う理由
+
+```java
+return ResponseEntity.ok(task); // 200 OK + body
+```
+
+この処理で、HTTPステータスコードを明示的に指定できる。
+
+今後エラー処理を追加するときも、
+
+```java
+ResponseEntity.notFound();
+ResponseEntity.badRequest();
+```
+
+のように使える。
+
+## ■循環参照について
+
+Entityは別のEntityを持つことで、相互に参照している状態になっている。<br>
+これをそのまま利用し、データを取得するServiceの処理でEntityを返すようにすると、その先のControllerがJSONに変換する処理で**循環参照**が発生する。<br>
+その場合、StackOverFlowErrorが発生する。
+
+### ◯循環参照を避けるには
+
+ServiceでEntityを返すのではなく、**DTO**を返すようにする。
+
+重要なのは、**DTOは必要なデータだけを持つように設計するから、循環構造を作らない**、ということ。
+
+例えば、DTOではTaskの情報を帰す場合、絶対にProjectのインスタンスは持たないようにするのが基本。<br>
+👉️ Entityではなく**値**を設定する。
+👉️ 絶対に循環参照にならない。

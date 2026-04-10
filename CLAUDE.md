@@ -163,6 +163,8 @@ taskAndManHourManagementTool/
 ├── README.md
 ├── docs/                          # 学習メモなど
 │   └── learn.md
+├── .vscode/
+│   └── launch.json                # VSCode デバッグ設定
 ├── backend/
 │   └── task-management/           # Spring Boot プロジェクト
 │       ├── pom.xml
@@ -170,7 +172,35 @@ taskAndManHourManagementTool/
 │       └── src/
 │           ├── main/
 │           │   ├── java/com/example/taskmanagement/
-│           │   │   └── TaskManagementApplication.java
+│           │   │   ├── TaskManagementApplication.java
+│           │   │   ├── config/
+│           │   │   │   └── SecurityConfig.java
+│           │   │   ├── entity/
+│           │   │   │   ├── User.java
+│           │   │   │   ├── Project.java
+│           │   │   │   ├── Task.java
+│           │   │   │   ├── WorkLog.java
+│           │   │   │   ├── TaskStatus.java   # enum
+│           │   │   │   └── TaskPriority.java # enum
+│           │   │   ├── repository/
+│           │   │   │   ├── UserRepository.java
+│           │   │   │   ├── ProjectRepository.java
+│           │   │   │   ├── TaskRepository.java
+│           │   │   │   └── WorkLogRepository.java
+│           │   │   ├── service/
+│           │   │   │   ├── UserService.java
+│           │   │   │   ├── ProjectService.java
+│           │   │   │   ├── TaskService.java
+│           │   │   │   └── WorkLogService.java
+│           │   │   ├── controller/
+│           │   │   │   ├── TaskController.java
+│           │   │   │   └── WorkLogController.java
+│           │   │   └── dto/
+│           │   │       ├── TaskRequest.java
+│           │   │       ├── TaskResponse.java
+│           │   │       ├── WorkLogRequest.java
+│           │   │       ├── WorkLogResponse.java
+│           │   │       └── HoursSummaryResponse.java
 │           │   └── resources/
 │           │       ├── application.properties         # 共通設定（プロファイル指定）
 │           │       ├── application-dev.properties     # 開発環境設定（ローカルDB）
@@ -191,19 +221,13 @@ taskAndManHourManagementTool/
             └── page.module.css
 ```
 
-### バックエンド 実装予定の構成
+### バックエンド 実装予定の構成（security パッケージ）
 
-コーディングが進むにつれ、以下のパッケージ構成に拡張していく。
+JWT認証実装時に追加予定。
 
 ```
 src/main/java/com/example/taskmanagement/
-├── TaskManagementApplication.java
-├── entity/          # JPAエンティティ（User, Project, Task, WorkLog）
-├── repository/      # Spring Data JPA リポジトリ
-├── service/         # ビジネスロジック
-├── controller/      # REST API コントローラ
-├── dto/             # リクエスト/レスポンス用 DTO
-└── security/        # JWT認証関連
+└── security/        # JWT認証関連（⑥Next.js実装前に追加）
 ```
 
 ### フロントエンド 実装予定の構成
@@ -246,9 +270,31 @@ src/
 - Backend: Render（Spring Boot）
 - DB: Neon（PostgreSQL）
 
+### バックエンド実装（完了）
+
+全体の進捗：① → ⑤ 完了。
+
+- ① Entity（完了）
+  - `entity/` パッケージに User, Project, Task, WorkLog を作成
+  - JPA Auditing で `created_at` / `updated_at` を自動設定
+  - TaskStatus / TaskPriority を enum で管理
+- ② Repository（完了）
+  - `repository/` パッケージに4つのRepositoryを作成
+  - メソッド名によるクエリ自動生成・`@Query` による工数集計クエリを実装
+- ③ Service（完了）
+  - `service/` パッケージに4つのServiceを作成
+  - JWT認証（UserService）は Next.js 実装前に対応予定
+- ④ Controller / API（完了）
+  - `controller/` パッケージに TaskController, WorkLogController を作成
+  - レスポンスはDTO（TaskResponse, WorkLogResponse）で返す設計
+  - 循環参照対策としてEntityを直接返さずDTOに変換
+- ⑤ 動作確認（完了）
+  - 全APIエンドポイントの動作確認済み
+  - SecurityConfig は `anyRequest().permitAll()` で一時的に全許可（JWT実装時に変更予定）
+
 ### 次のステップ
 
-コーディング開始。実装する機能をユーザーから指示を受ける。
+⑥ Next.js実装（JWT認証実装 → フロントエンド実装の順で進める）
 
 ---
 

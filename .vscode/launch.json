@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Debug Spring Boot",
+      "request": "launch",
+      "mainClass": "com.example.taskmanagement.TaskManagementApplication",
+      "projectName": "task-management",
+      "vmArgs": "-Dspring.profiles.active=dev"
+    }                                                                                         
+  ]
+} 
