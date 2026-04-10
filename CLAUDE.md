@@ -153,15 +153,84 @@ UIはReactのMUIを利用する。
 - 実装はシンプルで読みやすさ重視
 - ディレクトリ構成も提案してほしい
 
+## ディレクトリ構成
+
+### 現在の構成
+
+```
+taskAndManHourManagementTool/
+├── CLAUDE.md
+├── README.md
+├── docs/                          # 学習メモなど
+│   └── learn.md
+├── backend/
+│   └── task-management/           # Spring Boot プロジェクト
+│       ├── pom.xml
+│       ├── mvnw / mvnw.cmd
+│       └── src/
+│           ├── main/
+│           │   ├── java/com/example/taskmanagement/
+│           │   │   └── TaskManagementApplication.java
+│           │   └── resources/
+│           │       ├── application.properties         # 共通設定（プロファイル指定）
+│           │       ├── application-dev.properties     # 開発環境設定（ローカルDB）
+│           │       └── application-prod.properties    # 本番環境設定（Neon DB）
+│           └── test/
+│               └── java/com/example/taskmanagement/
+│                   └── TaskManagementApplicationTests.java
+└── frontend/                      # Next.js プロジェクト
+    ├── package.json
+    ├── tsconfig.json
+    ├── eslint.config.mjs
+    ├── public/
+    └── src/
+        └── app/                   # App Router
+            ├── layout.tsx
+            ├── page.tsx
+            ├── globals.css
+            └── page.module.css
+```
+
+### バックエンド 実装予定の構成
+
+コーディングが進むにつれ、以下のパッケージ構成に拡張していく。
+
+```
+src/main/java/com/example/taskmanagement/
+├── TaskManagementApplication.java
+├── entity/          # JPAエンティティ（User, Project, Task, WorkLog）
+├── repository/      # Spring Data JPA リポジトリ
+├── service/         # ビジネスロジック
+├── controller/      # REST API コントローラ
+├── dto/             # リクエスト/レスポンス用 DTO
+└── security/        # JWT認証関連
+```
+
+### フロントエンド 実装予定の構成
+
+```
+src/
+└── app/
+    ├── layout.tsx
+    ├── page.tsx               # トップページ（ログイン画面）
+    ├── projects/              # プロジェクト一覧・詳細
+    │   └── [id]/
+    │       └── tasks/         # タスク一覧・詳細
+    ├── components/            # 共通UIコンポーネント
+    ├── hooks/                 # カスタムフック
+    ├── lib/                   # APIクライアントなど
+    └── types/                 # TypeScript型定義
+```
+
 ## 進捗状況
 
 ### 環境構築（完了）
 
 - Java 17.0.18 インストール済み
 - Maven 3.9.14 インストール済み
-- PostgreSQL 16.13 インストール済み・起動中
+- PostgreSQL 16.13 インストール済み
   - 開発用DB: `task_management_dev`
-  - 接続ユーザー: `wanchi`（Macログインユーザー）
+  - 接続ユーザー: 自PCのユーザ
 - Spring Boot 3.5.13 プロジェクト生成済み
   - 場所: `backend/task-management/`
   - プロファイル切り替え設定済み（dev/prod）
