@@ -8,6 +8,7 @@ import lombok.Getter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * タスクレスポンスDTO
@@ -34,6 +35,11 @@ public class TaskResponse {
      * 説明
      */
     private final String description;
+
+    /**
+     * アサインされたユーザIDのリスト
+     */
+    private final List<Long> assignedUserIds;
 
     /**
      * ステータス
@@ -75,6 +81,9 @@ public class TaskResponse {
         this.projectId = task.getProject().getId();
         this.title = task.getTitle();
         this.description = task.getDescription();
+        this.assignedUserIds = task.getTaskAssignments().stream()
+                .map(a -> a.getUser().getId())
+                .toList();
         this.status = task.getStatus();
         this.priority = task.getPriority();
         this.dueDate = task.getDueDate();

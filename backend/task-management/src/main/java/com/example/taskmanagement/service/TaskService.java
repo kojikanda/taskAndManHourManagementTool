@@ -4,10 +4,15 @@ import com.example.taskmanagement.dto.HoursSummaryResponse;
 import com.example.taskmanagement.dto.TaskResponse;
 import com.example.taskmanagement.entity.Project;
 import com.example.taskmanagement.entity.Task;
+import com.example.taskmanagement.entity.TaskAssignment;
 import com.example.taskmanagement.entity.TaskPriority;
 import com.example.taskmanagement.entity.TaskStatus;
+import com.example.taskmanagement.entity.User;
 import com.example.taskmanagement.repository.ProjectRepository;
+import com.example.taskmanagement.repository.TaskAssignmentRepository;
 import com.example.taskmanagement.repository.TaskRepository;
+import com.example.taskmanagement.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,21 +39,31 @@ public class TaskService {
     private final ProjectRepository projectRepository;
 
     /**
+     * ユーザリポジトリ
+     */
+    private final UserRepository userRepository;
+
+    /**
+     * タスクアサインリポジトリ
+     */
+    private final TaskAssignmentRepository taskAssignmentRepository;
+
+    /**
      * タスクを作成する
      * 
-     * @param projectId      プロジェクトID
-     * @param title          タスクタイトル
-     * @param description    タスク説明
-     * @param status         ステータス
-     * @param priority       優先度
-     * @param dueDate        期限日
-     * @param estimatedHours 見積時間
+     * @param projectId       プロジェクトID
+     * @param title           タスクタイトル
+     * @param description     タスク説明
+     * @param assignedUserIds アサインするユーザIDのリスト
+     * @param status          ステータス
+     * @param priority        優先度
+     * @param dueDate         期限日
+     * @param estimatedHours  見積時間
      * @return 作成されたタスクのレスポンスDTO
      */
     @Transactional
-    public TaskResponse createTask(Long projectId, String title, String description,
-            TaskStatus status, TaskPriority priority,
-            LocalDate dueDate, BigDecimal estimatedHours) {
+    public TaskResponse createTask(Long projectId, String title, String description, List<Long> assignedUserIds,
+            TaskStatus status, TaskPriority priority, LocalDate dueDate, BigDecimal estimatedHours) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found: " + projectId));
 
@@ -61,7 +76,22 @@ public class TaskService {
         task.setDueDate(dueDate);
         task.setEstimatedHours(estimatedHours);
 
-        return TaskResponse.from(taskRepository.save(task));
+        Task savedTask = taskRepository.save(task);
+
+        // アサインユーザの登録
+        if (assignedUserIds != null) {
+            for (Long userId : assignedUserIds) {
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                TaskAssignment assignment = new TaskAssignment();
+                assignment.setTask(savedTask);
+                assignment.setUser(user);
+                taskAssignmentRepository.save(assignment);
+                savedTask.getTaskAssignments().add(assignment);
+            }
+        }
+
+        return TaskResponse.from(savedTask);
     }
 
     /**
@@ -133,5 +163,55 @@ public class TaskService {
     private Task findTaskById(Long id) {
         return taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found: " + id));
+    }
+
+    /**
+     * タスクにユーザをアサインする
+     * 
+     * @param taskId タスクID
+     * @param userId ユーザID
+     */
+    @Transactional
+    public void assignUser(Long taskId, Long userId) {
+        // 重複チェック
+        if (taskAssignmentRepository.existsByTaskIdAndUserId(taskId, userId)) {
+            throw new RuntimeException("User already assigned: userId=" + userId);
+        }
+
+        Task task = findTaskById(taskId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        TaskAssignment assignment = new TaskAssignment();
+        assignment.setTask(task);
+        assignment.setUser(user);
+        taskAssignmentRepository.save(assignment);
+    }
+
+    /**
+     * タスクからユーザのアサインを解除する
+     * 
+     * @param taskId タスクID
+     * @param userId ユーザID
+     */
+    @Transactional
+    public void unassignUser(Long taskId, Long userId) {
+        if (!taskAssignmentRepository.existsByTaskIdAndUserId(taskId, userId)) {
+            throw new RuntimeException("Assignment not found: taskId=" + taskId + ", userId=" + userId);
+        }
+        taskAssignmentRepository.deleteByTaskIdAndUserId(taskId, userId);
+    }
+
+    /**
+     * タスクにアサインされたユーザIDのリストを取得する
+     *
+     * @param taskId タスクID
+     * @return ユーザIDのリスト
+     */
+    @Transactional(readOnly = true)
+    public List<Long> getAssignedUserIds(Long taskId) {
+        return taskAssignmentRepository.findByTaskId(taskId).stream()
+                .map(a -> a.getUser().getId())
+                .toList();
     }
 }

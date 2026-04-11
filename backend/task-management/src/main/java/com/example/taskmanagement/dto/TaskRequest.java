@@ -7,6 +7,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * タスク作成リクエストDTO
@@ -29,6 +30,11 @@ public class TaskRequest {
      * 説明
      */
     private String description;
+
+    /**
+     * アサインするユーザIDのリスト
+     */
+    private List<Long> assignedUserIds;
 
     /**
      * ステータス

@@ -55,6 +55,12 @@ public class User {
     private List<Project> projects = new ArrayList<>();
 
     /**
+     * ユーザがアサインされたタスクのリスト
+     */
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<TaskAssignment> taskAssignments = new ArrayList<>();
+
+    /**
      * ユーザが作成したワークログのリスト
      */
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)

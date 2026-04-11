@@ -42,6 +42,7 @@ public class TaskController {
                 request.getProjectId(),
                 request.getTitle(),
                 request.getDescription(),
+                request.getAssignedUserIds(),
                 request.getStatus(),
                 request.getPriority(),
                 request.getDueDate(),
@@ -79,5 +80,42 @@ public class TaskController {
     @GetMapping("/tasks/{taskId}/hours-summary")
     public ResponseEntity<HoursSummaryResponse> getHoursSummary(@PathVariable Long taskId) {
         return ResponseEntity.ok(taskService.getHoursSummary(taskId));
+    }
+
+    /**
+     * タスクへのユーザアサイン
+     *
+     * @param taskId タスクID
+     * @param userId ユーザID
+     * @return 204 No Content
+     */
+    @PostMapping("/tasks/{taskId}/assignments/{userId}")
+    public ResponseEntity<Void> assignUser(@PathVariable Long taskId, @PathVariable Long userId) {
+        taskService.assignUser(taskId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * タスクからユーザのアサイン解除
+     * 
+     * @param taskId タスクID
+     * @param userId ユーザID
+     * @return 204 No Content
+     */
+    @DeleteMapping("/tasks/{taskId}/assignments/{userId}")
+    public ResponseEntity<Void> unassignUser(@PathVariable Long taskId, @PathVariable Long userId) {
+        taskService.unassignUser(taskId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * タスクのアサイン済みユーザID一覧取得
+     * 
+     * @param taskId タスクID
+     * @return ユーザIDのリスト
+     */
+    @GetMapping("/tasks/{taskId}/assignments")
+    public ResponseEntity<List<Long>> getAssignedUsers(@PathVariable Long taskId) {
+        return ResponseEntity.ok(taskService.getAssignedUserIds(taskId));
     }
 }

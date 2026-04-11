@@ -77,6 +77,12 @@ public class Task {
     private BigDecimal estimatedHours;
 
     /**
+     * タスクにアサインされたユーザのリスト
+     */
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TaskAssignment> taskAssignments = new ArrayList<>();
+
+    /**
      * タスクに紐付いたワークログのリスト
      */
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL)

@@ -181,7 +181,7 @@ userId = JWTから取得
 String token = jwtUtil.generateToken(user);
 ```
 
-###② フィルター
+### ② フィルター
 
 ```java
 Authorization: Bearer xxx
@@ -387,7 +387,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 ```properties
 # ローカルPostgreSQL接続設定
 spring.datasource.url=jdbc:postgresql://localhost:5432/task_management_dev
-spring.datasource.username=wanchi
+spring.datasource.username=xxx
 spring.datasource.password=
 
 # JPA設定
@@ -613,14 +613,14 @@ https://qiita.com/ist-a-ku/items/1d278619f241f4800bb2
 
 ## ■ 実装の全体ステップ
 
-① DB設計（Entity）
-② Repository
-③ Service
-④ Controller（API完成）
-⑤ 動作確認
-⑥ Next.js実装
-⑦ フロント連携
-⑧ デプロイ
+① DB設計（Entity）<br>
+② Repository<br>
+③ Service<br>
+④ Controller（API完成）<br>
+⑤ 動作確認<br>
+⑥ Next.js実装<br>
+⑦ フロント連携<br>
+⑧ デプロイ<br>
 
 ## ■ ステップ① Entity作成（最優先）
 
@@ -710,8 +710,14 @@ curl http://localhost:8080/tasks
 ```
 Next.js（TypeScript）で以下の画面を作成してください。
 
-① タスク一覧画面
+① プロジェクト一覧画面
 
+- APIからプロジェクト一覧取得
+- 表示
+
+② タスク一覧画面
+
+- プロジェクト一覧画面からタスク一覧
 - APIからタスク一覧取得
 - 表示
 
@@ -754,7 +760,7 @@ created_at / updated_at の自動設定には Spring Data JPA の Auditing機能
 
 ## ■Entity (DBのテーブル)
 
-### ◯アノテーション
+### ◯アノテーション / フィールド
 
 | 項目                                              | 説明                                                                                                      |
 | :------------------------------------------------ | :-------------------------------------------------------------------------------------------------------- |
@@ -782,6 +788,8 @@ LombokのアノテーションにはEntityに向いていないものがある�
 - @EqualsAndHashCode → JPAのプロキシオブジェクト（遅延ロード用のラッパー）と比較すると正しく動かないケースがある
 
 そのため、Entityには @Getter @Setter @NoArgsConstructor の組み合わせが安全。
+
+- @NoArgsConstructor → デフォルトコンストラクタを生成
 
 ### ◯外部キーの管理
 
@@ -835,7 +843,7 @@ mappedBy を書かないと、JPAは「両方が外部キーを管理しよう�
 
 #### ・@ManyToOne(fetch = FetchType.LAZY) について
 
-デフォルトは EAGER（関連データを即時ロード）ですが、LAZY（必要になった時にロード）を明示している。<br>
+デフォルトは EAGER（関連データを即時ロード）だが、LAZY（必要になった時にロード）を明示している。<br>
 Projectを取得するたびにUserのデータまで引っ張ってきてしまうのを防ぎ、パフォーマンスが向上する。
 
 ### ◯Entityを作ってSpring Bootを動かすと
@@ -850,7 +858,7 @@ spring.jpa.hibernate.ddl-auto=update
 
 ## ■repositoryについて
 
-repositoryはDB操作を実装したもの。
+repositoryはDB操作を実装したもの。<br>
 実装と言っても、実際にはInterfaceを実装するだけで良い。
 
 ### ◯JpaRepository<Entity, ID型> を継承するだけでよい理由
@@ -1023,5 +1031,5 @@ ServiceでEntityを返すのではなく、**DTO**を返すようにする。
 重要なのは、**DTOは必要なデータだけを持つように設計するから、循環構造を作らない**、ということ。
 
 例えば、DTOではTaskの情報を帰す場合、絶対にProjectのインスタンスは持たないようにするのが基本。<br>
-👉️ Entityではなく**値**を設定する。
+👉️ Entityではなく**値**を設定する。<br>
 👉️ 絶対に循環参照にならない。
