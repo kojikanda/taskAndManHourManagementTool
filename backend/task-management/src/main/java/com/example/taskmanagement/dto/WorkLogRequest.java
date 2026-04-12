@@ -19,11 +19,6 @@ public class WorkLogRequest {
     private Long taskId;
 
     /**
-     * ユーザーID
-     */
-    private Long userId;
-
-    /**
      * 作業日
      */
     private LocalDate workDate;

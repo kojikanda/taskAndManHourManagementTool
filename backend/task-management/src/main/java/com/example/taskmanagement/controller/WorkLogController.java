@@ -5,6 +5,8 @@ import com.example.taskmanagement.dto.WorkLogResponse;
 import com.example.taskmanagement.service.WorkLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,10 +27,11 @@ public class WorkLogController {
      * @return 作成されたワークログのレスポンスDTO
      */
     @PostMapping("/work-logs")
-    public ResponseEntity<WorkLogResponse> createWorkLog(@RequestBody WorkLogRequest request) {
+    public ResponseEntity<WorkLogResponse> createWorkLog(@RequestBody WorkLogRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
         WorkLogResponse workLog = workLogService.createWorkLog(
                 request.getTaskId(),
-                request.getUserId(),
+                userDetails.getUsername(),
                 request.getWorkDate(),
                 request.getHours(),
                 request.getMemo());

@@ -2,6 +2,8 @@ package com.example.taskmanagement.service;
 
 import com.example.taskmanagement.entity.User;
 import com.example.taskmanagement.repository.UserRepository;
+import com.example.taskmanagement.security.JwtUtil;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,11 @@ public class UserService {
      * パスワードエンコーダー
      */
     private final PasswordEncoder passwordEncoder;
+
+    /**
+     * JWTユーティリティ
+     */
+    private final JwtUtil jwtUtil;
 
     /**
      * ユーザーを作成する
@@ -56,5 +63,23 @@ public class UserService {
     public User getUserById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found: " + id));
+    }
+
+    /**
+     * ログイン認証を行い、JWTトークンを返す
+     * 
+     * @param email       メールアドレス
+     * @param rawPassword 生パスワード
+     * @return JWTトークン
+     */
+    public String login(String email, String rawPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+            throw new RuntimeException("Invalid email or password");
+        }
+
+        return jwtUtil.generateToken(email);
     }
 }

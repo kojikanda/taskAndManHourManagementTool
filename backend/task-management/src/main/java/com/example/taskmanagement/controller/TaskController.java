@@ -58,8 +58,7 @@ public class TaskController {
      * @return 更新されたタスクのレスポンスDTO
      */
     @PutMapping("/tasks/{id}")
-    public ResponseEntity<TaskResponse> updateTask(@PathVariable Long id,
-            @RequestBody TaskRequest request) {
+    public ResponseEntity<TaskResponse> updateTask(@PathVariable Long id, @RequestBody TaskRequest request) {
         TaskResponse task = taskService.updateTask(
                 id,
                 request.getTitle(),
@@ -87,7 +86,7 @@ public class TaskController {
      *
      * @param taskId タスクID
      * @param userId ユーザID
-     * @return 204 No Content
+     * @return 204(No Content)のレスポンス
      */
     @PostMapping("/tasks/{taskId}/assignments/{userId}")
     public ResponseEntity<Void> assignUser(@PathVariable Long taskId, @PathVariable Long userId) {
@@ -100,7 +99,7 @@ public class TaskController {
      * 
      * @param taskId タスクID
      * @param userId ユーザID
-     * @return 204 No Content
+     * @return 204(No Content)のレスポンス
      */
     @DeleteMapping("/tasks/{taskId}/assignments/{userId}")
     public ResponseEntity<Void> unassignUser(@PathVariable Long taskId, @PathVariable Long userId) {

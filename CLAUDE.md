@@ -86,12 +86,20 @@ UIはReactのMUIを利用する。
 - memo
 - created_at
 
+### task_assignments（追加）
+
+- id (PK)
+- task_id (FK → tasks.id)
+- user_id (FK → users.id)
+- ※ task_id + user_id に UNIQUE 制約あり
+
 ### リレーション
 
 - users 1 : N projects
 - projects 1 : N tasks
 - tasks 1 : N work_logs
 - users 1 : N work_logs
+- tasks N : M users（task_assignments 経由）
 
 ## 使用する言語、フレームワーク、DBなど
 
@@ -221,14 +229,28 @@ taskAndManHourManagementTool/
             └── page.module.css
 ```
 
-### バックエンド 実装予定の構成（security パッケージ）
-
-JWT認証実装時に追加予定。
+### バックエンド 追加済みの構成（security パッケージ）
 
 ```
 src/main/java/com/example/taskmanagement/
-└── security/        # JWT認証関連（⑥Next.js実装前に追加）
+├── entity/
+│   └── TaskAssignment.java          # 追加（task_assignments 中間テーブル）
+├── repository/
+│   └── TaskAssignmentRepository.java # 追加
+├── security/                         # 追加（JWT認証関連）
+│   ├── JwtUtil.java
+│   ├── JwtProperties.java
+│   ├── JwtAuthenticationFilter.java
+│   └── UserDetailsServiceImpl.java
+├── controller/
+│   └── AuthController.java           # 追加（/auth/register, /auth/login）
+└── dto/
+    ├── RegisterRequest.java          # 追加
+    ├── LoginRequest.java             # 追加
+    └── LoginResponse.java            # 追加
 ```
+
+また、`src/main/resources/META-INF/additional-spring-configuration-metadata.json` を追加し、カスタムプロパティ（`jwt.*`）の警告を解消済み。
 
 ### フロントエンド 実装予定の構成
 
@@ -272,29 +294,39 @@ src/
 
 ### バックエンド実装（完了）
 
-全体の進捗：① → ⑤ 完了。
+全体の進捗：① → ⑥ 完了。
 
 - ① Entity（完了）
   - `entity/` パッケージに User, Project, Task, WorkLog を作成
   - JPA Auditing で `created_at` / `updated_at` を自動設定
   - TaskStatus / TaskPriority を enum で管理
+  - `TaskAssignment` エンティティを追加（tasks と users の中間テーブル）
 - ② Repository（完了）
-  - `repository/` パッケージに4つのRepositoryを作成
+  - `repository/` パッケージに5つのRepositoryを作成（TaskAssignmentRepository 追加）
   - メソッド名によるクエリ自動生成・`@Query` による工数集計クエリを実装
 - ③ Service（完了）
   - `service/` パッケージに4つのServiceを作成
-  - JWT認証（UserService）は Next.js 実装前に対応予定
+  - TaskService にアサイン操作（追加・削除・一覧取得）を追加
+  - WorkLogService のユーザ取得をリクエストの userId から JWT の email に変更
 - ④ Controller / API（完了）
-  - `controller/` パッケージに TaskController, WorkLogController を作成
+  - `controller/` パッケージに TaskController, WorkLogController, AuthController を作成
   - レスポンスはDTO（TaskResponse, WorkLogResponse）で返す設計
   - 循環参照対策としてEntityを直接返さずDTOに変換
+  - タスクアサイン用API（POST/DELETE/GET `/tasks/{taskId}/assignments`）を追加
 - ⑤ 動作確認（完了）
   - 全APIエンドポイントの動作確認済み
-  - SecurityConfig は `anyRequest().permitAll()` で一時的に全許可（JWT実装時に変更予定）
+- ⑥ JWT認証（完了）
+  - JJWT ライブラリを導入
+  - `security/` パッケージに JwtUtil, JwtProperties, JwtAuthenticationFilter, UserDetailsServiceImpl を作成
+  - SecurityConfig を更新（JWTフィルター組み込み・`/auth/**` のみ認証不要）
+  - `/auth/register`・`/auth/login` エンドポイントを実装
+  - `application-dev.properties` に `jwt.secret`・`jwt.expiration` を追加
+  - 本番環境（`application-prod.properties`）では `${JWT_SECRET}` 環境変数から取得する設計
+  - ログアウトはステートレスなJWTの性質上、フロントエンドでトークンを削除するだけで対応
 
 ### 次のステップ
 
-⑥ Next.js実装（JWT認証実装 → フロントエンド実装の順で進める）
+⑦ Next.js実装（フロントエンド実装）
 
 ---
 

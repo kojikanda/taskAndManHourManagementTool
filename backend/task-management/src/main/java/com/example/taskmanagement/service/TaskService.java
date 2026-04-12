@@ -107,8 +107,7 @@ public class TaskService {
      * @return 更新されたタスクのレスポンスDTO
      */
     @Transactional
-    public TaskResponse updateTask(Long id, String title, String description,
-            TaskStatus status, TaskPriority priority,
+    public TaskResponse updateTask(Long id, String title, String description, TaskStatus status, TaskPriority priority,
             LocalDate dueDate, BigDecimal estimatedHours) {
         Task task = findTaskById(id);
 

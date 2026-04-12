@@ -42,6 +42,15 @@ cd backend/task-management
 ./mvnw spring-boot:run
 ```
 
+### mavenについて
+
+pow.xmlを修正したら、手動で以下コマンドを実行する必要がある。
+
+```bash
+cd backend/task-management
+./mvnw compile
+```
+
 ---
 
 <br>
@@ -202,6 +211,307 @@ Authorization: Bearer xxx
 ### ❌ 有効期限なし
 
 👉 必ずexp入れる
+
+## ■具体的な実装
+
+### ◯JwtUtil
+
+```java
+public JwtUtil(@Value("${jwt.secret}") String secret,
+               @Value("${jwt.expiration}") long expiration) {
+  this.secretKey = Keys.hmacShaKeyFor(secret.getBytes());
+  this.expiration = expiration;
+}
+```
+
+#### ・@Valueアノテーションについて
+
+@Valueはapplication.properties に書いた値をJavaのフィールドや引数に注入するアノテーション。
+
+application-dev.properties に書いたこの2行が：
+
+```properties
+jwt.secret=your-256-bit-secret-key-here-please-change-in-production
+jwt.expiration=86400000
+```
+
+コンストラクタの引数に自動で注入される。
+
+```
+jwt.secret の値  →  secret 引数に入る
+jwt.expiration の値  →  expiration 引数に入る
+```
+
+### ◯クレームとは
+
+JSON Web Token（JWT）クレームは対象について主張された情報。
+
+たとえば、IDトークン（必ずJWT）には、認証しようとしているユーザーの名前が「John Doe」であると主張するnameクレームが含まれている。<br>
+JWTでは、クレームは名前と値のペアで表記され、名前は常に文字列で、値は任意のJSON値になる。<br>
+一般的に、JWTに関してクレームと言えば、名前（または鍵）のことを指す。<br>
+たとえば、以下のJSONオブジェクトには3つのクレーム（sub、name、admin）が含まれている。
+
+```properties
+{
+  "sub": "1234567890",
+  "name": "John Doe",
+  "admin": true
+}
+```
+
+### ◯UserDetailsServiceImplの処理について
+
+UserエンティティからSpring Securityが扱うことができる形式(UserDetailsインタフェース)に変換している。
+
+```java
+return org.springframework.security.core.userdetails.User  // Spring SecurityのUserクラス
+          .withUsername(user.getEmail())     // ユーザ識別子としてemailをセット
+          .password(user.getPasswordHash())  // パスワードハッシュをセット
+          .build();                          // UserDetailsオブジェクトを生成
+```
+
+- .withUsername() : ユーザを一意に識別するIDとして何を使うかを指定する。<br>
+  今回はemailを使っている（usernameという名前だが、emailをセットしてOK）。
+- .password() : BCryptでハッシュ化済みのパスワードをセット。<br>
+  Spring Securityがログイン時に比較するために使う。
+- .build() : ビルダーパターンでオブジェクトを生成
+
+#### ・ログイン処理の流れ
+
+```
+ログインリクエスト
+    ↓
+JwtAuthenticationFilter がトークンからemailを取り出す
+    ↓
+UserDetailsServiceImpl#loadUserByUsername(email) が呼ばれる
+    ↓
+DBからUserエンティティを取得
+    ↓
+Spring SecurityのUserオブジェクトに変換 ← ここ
+    ↓
+Spring SecurityがUserDetailsとして認証情報を管理する
+```
+
+### ◯JwtAuthenticationFilterについて
+
+すべてのリクエストに対して「トークンが正しいか」を検証するフィルター。<br>
+この処理は**Controllerの前**で動く。
+
+トークンは、HTTPのリクエスト内で以下のようになっている。
+
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+```
+
+doFilterInternalの処理では、トークンを抜き出すとき、先頭の「Bearer 」を取り除いている。
+
+#### ・doFilterInterernalの処理について
+
+```java
+// Spring Security が扱う「認証済みトークン」オブジェクトを作成
+UsernamePasswordAuthenticationToken authToken =
+    new UsernamePasswordAuthenticationToken(
+        userDetails,              // 認証されたユーザ情報
+        null,                     // パスワード（認証後は不要なのでnull）
+        userDetails.getAuthorities()  // 権限リスト（今回はロールなしなので空）
+    );
+
+// リクエストの詳細情報（IPアドレスなど）を付加
+authToken.setDetails(
+    new WebAuthenticationDetailsSource().buildDetails(request)
+);
+// SecurityContext に認証情報をセット → 「このユーザは認証済み」と記録
+SecurityContextHolder.getContext().setAuthentication(authToken);
+```
+
+#### ・SecurityContextとは
+
+「現在のリクエストを送ってきたユーザが誰か」を保持する場所。
+
+Spring Securityはリクエストを処理する間、認証済みユーザの情報をスレッドローカル（そのリクエストを処理しているスレッド専用の記憶領域）に保存している。<br>
+その保存場所が SecurityContext。
+
+Spring Security は SecurityContext を見て「このリクエストは認証済みか」を判断する。
+
+```
+SecurityContext に認証情報がある → 認証済み → 処理を続行
+SecurityContext に認証情報がない → 未認証 → 401 を返す
+```
+
+つまり SecurityContext にセットしないと、トークンが正しくても毎回 401 になってしまう。
+
+#### ・全体のリクエスト処理イメージ
+
+```
+リクエスト受信
+    ↓
+JwtAuthenticationFilter が動く
+    ↓
+トークンを検証 → 有効
+    ↓
+SecurityContext に認証情報をセット  ← ここ
+    ↓
+SecurityConfig の .anyRequest().authenticated() チェック
+    ↓
+SecurityContext に認証情報がある → OK → Controllerへ
+```
+
+SecurityContextはSpring Securityとアプリの間の「このユーザは認証済みですよ」という合言葉のような役割を果たしている。
+
+#### ・filterChain.doFilter(request, response);の処理について
+
+**自分のフィルターの処理が終わったので、次のフィルターへ渡す**、という意味。<br>
+これを呼ばないと、次のフィルターの処理に到達しないので、必ず呼ぶ必要がある。
+
+### ◯SecurityConfigの処理について
+
+#### ・securityFilterChainの処理
+
+```java
+http
+     // ① CSRFを無効化
+     .csrf(csrf -> csrf.disable())
+
+     // ② セッションを使わない（JWTはステートレスなので）
+     .sessionManagement(session ->
+         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+     // ③ URLごとのアクセス制御
+     .authorizeHttpRequests(auth -> auth
+         .requestMatchers("/auth/**").permitAll()   // /auth/* は認証不要
+         .anyRequest().authenticated()              // それ以外は認証必要
+     )
+
+     // ④ JWTフィルターを既存のフィルターの前に差し込む
+     .addFilterBefore(jwtAuthenticationFilter,
+         UsernamePasswordAuthenticationFilter.class);
+```
+
+##### ① CSRFを無効化
+
+CSRF対策はブラウザのCookieでセッション管理する場合に必要だが、JWTはAuthorizationヘッダーで認証するためCSRF攻撃の対象にならず、不要。
+
+CSRFはWebサイトにログイン中のユーザーを騙し、意図しない操作（メール変更、決済、投稿など）を別のWebサイト経由で強制的に実行させる脆弱性および攻撃手法。<br>
+ユーザ認証をセッションを使って行う場合に対策を行わないといけないが、今回はセッションを使わないので、無効化しても良い。
+
+##### ② セッションを使わない
+
+通常のWebアプリはログイン後にサーバ側でセッションを保持するが、JWTは「トークン自体に認証情報が入っている」ためサーバにセッションを持つ必要がない。<br>
+**STATELESS**にすることでSpring Securityがセッションを一切作らなくなる。
+
+##### ③ ログインが「認証不要」の意味
+
+一見「ログインするためには認証が必要では？」と思えるが、ここで言う「認証」は別の話。
+
+整理すると以下のようになる。
+
+- 「認証不要」= JWTトークンなしでアクセスできる
+- 「認証必要」= JWTトークンが必要
+
+ログインの目的は「トークンを持っていない人がトークンを取得すること」。
+
+```
+まだトークンを持っていない(→ログインしていない)
+↓
+ POST /auth/login にメール+パスワードを送る
+↓
+ サーバがパスワードを検証
+↓
+ JWTトークンを返す ← これが「認証」
+↓
+ 以降のリクエストでトークンを使う
+```
+
+/auth/login にトークンを要求してしまうと、「トークンを取得するためにトークンが必要」という矛盾が発
+生します。そのため permitAll() でトークンなしでもアクセスできるようにしています。
+
+/auth/register も同様で、まだアカウントを持っていない人が登録するエンドポイントなので、当然トーク
+ンは持っていません。
+
+#### ・passwordEncoderの処理について
+
+リクエストで渡されたパスワードをハッシュ値に変換する際に利用する**BCryptPasswordEncoder**をクラスのインスタンスを返す。<br>
+メソッドの頭に**@Beanアノテーション**を付けることで、このインスタンスをSpringに管理させる。<br>
+これにより、UserServiceのpasswordEncoderフィールドにこのインスタンスが自動的に注入(DI)される。
+
+BCryptPasswordEncoder は外部ライブラリのクラスなので、**直接、@Componentをつけられない**。<br>
+そのためSecurityConfigに@Beanメソッドとして定義することでSpringに管理させている。
+
+#### ・authenticationManagerの処理について
+
+AuthenticationManager はSpring Securityが内部で持っているオブジェクトだが、デフォルトでは外部から取り出せないようになっている。<br>
+これを @Bean として登録することで、将来的に AuthenticationManagerをServiceやControllerに注入して使えるようになる。
+
+現時点では直接使っていませんが、JWT認証の一般的な実装パターンとして定型的に書いておくもの。<br>
+例えばSpring SecurityのUsernamePasswordAuthenticationTokenを使ってパスワード検証をAuthenticationManagerに委譲する書き方もあり、その場合に必要になる。
+
+### ◯ログアウト処理について
+
+APIではログアウトの処理は不要。
+
+JWTはサーバに状態を持たない（ステートレス）設計なので、フロントエンドでトークンを削除するだけがログアウトになる。
+
+#### ・流れ
+
+```
+フロントエンドでの対応（Next.js実装時）
+
+ログアウトボタンを押す
+    ↓
+localStorageやCookieからトークンを削除
+    ↓
+ログイン画面にリダイレクト
+```
+
+これだけでログアウトが完結する。
+
+## ■秘密鍵について
+
+### ◯開発環境について
+
+```properties
+# JWT設定
+jwt.secret=your-256-bit-secret-key-here-please-change-in-production
+jwt.expiration=86400000
+```
+
+開発環境はこのままで問題ない。
+
+ただし、秘密鍵の強度には注意が必要。<br>
+JJWTはHS256アルゴリズムの場合、256bit（32バイト）以上の秘密鍵を要求する。<br>
+現在の your-256-bit-secret-key-here-please-change-in-production<br>
+は41文字あるので長さは足りているが、開発用として意味のある文字列に変えておくと管理しやすい。
+
+👉️開発環境では一旦このままで進める。
+
+### ◯本番環境について
+
+application-prod.properties には推測されにくいランダムな文字列を設定する必要がある。
+
+ただし、プロパティファイルに直接書くのは危険。
+
+#### ・本番環境での推奨設定
+
+RenderなどのPaaSでは環境変数として設定し、プロパティファイルからその環境変数を参照する。
+
+#### ・application-prod.properties の書き方:
+
+```properties
+# JWT設定
+jwt.secret=${JWT_SECRET}
+jwt.expiration=${JWT_EXPIRATION:86400000}
+```
+
+- ${JWT_SECRET} → Renderの環境変数 JWT_SECRET の値が注入される
+- ${JWT_EXPIRATION:86400000} → 環境変数がなければデフォルト値 86400000 を使う
+
+#### ・Render側の設定:
+
+Renderの管理画面の「Environment」から環境変数を登録する。
+
+```
+JWT_SECRET = (openssl rand -base64 32 などで生成したランダム文字列)
+```
 
 ---
 
@@ -600,156 +910,6 @@ https://qiita.com/ist-a-ku/items/1d278619f241f4800bb2
 
 <br>
 
-# Claude Codeへの指示
-
-## ■ 全体の実装戦略（重要）
-
-👉 バックエンド → フロントの順で進める
-
-### 理由👇
-
-- APIがないとフロントが作れない
-- Spring Bootの理解が進む
-
-## ■ 実装の全体ステップ
-
-① DB設計（Entity）<br>
-② Repository<br>
-③ Service<br>
-④ Controller（API完成）<br>
-⑤ 動作確認<br>
-⑥ Next.js実装<br>
-⑦ フロント連携<br>
-⑧ デプロイ<br>
-
-## ■ ステップ① Entity作成（最優先）
-
-### やること
-
-- tasksテーブル
-- work_logsテーブル
-
-### Claude Code用プロンプト
-
-```
-Spring Bootで、CLAUDE.mdの「DB設計」に記載しているEntityクラスを作成してください。
-
-【要件】
-・JPA（Hibernate）を使用
-・Lombokを使用
-・テーブル名も明示する
-
-【補足】
-・created_at, updated_atは自動設定にしてください
-```
-
-## ■ ステップ② Repository
-
-### Claude Code用プロンプト
-
-```
-Spring Data JPAを使用してRepositoryを作成してください。
-```
-
-## ■ ステップ③ Service（ロジック）
-
-### Claude Code用プロンプト
-
-```
-Serviceクラスを作成してください。
-
-【要件】
-・@Serviceを使用
-・Repositoryを利用する
-```
-
-## ■ ステップ④ Controller（API）
-
-### Claude Code用プロンプト
-
-```
-REST APIを作成してください。
-
-① TaskController
-
-- GET /tasks
-- POST /tasks
-- PUT /tasks/{id}
-- DELETE /tasks/{id}
-
-② WorkLogController
-
-- GET /tasks/{taskId}/worklogs
-- POST /tasks/{taskId}/worklogs
-
-【要件】
-・@RestControllerを使用
-・JSON形式でやり取り
-・CORS対応を追加
-```
-
-## ■ ステップ⑤ 動作確認（重要）
-
-### やること
-
-- Postman or curlで確認
-
-```bash
-curl http://localhost:8080/tasks
-```
-
----
-
-👉 ここまでで
-バックエンド完成（超重要）
-
-## ■ ステップ⑥ Next.js実装
-
-### Claude Code用プロンプト
-
-```
-Next.js（TypeScript）で以下の画面を作成してください。
-
-① プロジェクト一覧画面
-
-- APIからプロジェクト一覧取得
-- 表示
-
-② タスク一覧画面
-
-- プロジェクト一覧画面からタスク一覧
-- APIからタスク一覧取得
-- 表示
-
-② タスク作成フォーム
-
-- title, description入力
-- POST /tasks
-
-【要件】
-・fetchまたはaxiosを使用
-・環境変数でAPI URL管理
-```
-
-## ■ ステップ⑦ フロント連携
-
-### Claude Code用プロンプト
-
-```
-Next.jsからSpring Boot APIに接続してください。
-
-【要件】
-・API URLは環境変数で管理
-・エラーハンドリング追加
-・ローディング状態を管理
-```
-
-## ■ ステップ⑧ 追加機能（余裕あれば）
-
-- 工数入力UI
-- 合計時間表示
-- ステータス管理（TODO / DOING / DONE）
-
 # Spring Boot実装
 
 ## ■@EnableJpaAuditing (TaskManagementApplication)
@@ -1033,3 +1193,159 @@ ServiceでEntityを返すのではなく、**DTO**を返すようにする。
 例えば、DTOではTaskの情報を帰す場合、絶対にProjectのインスタンスは持たないようにするのが基本。<br>
 👉️ Entityではなく**値**を設定する。<br>
 👉️ 絶対に循環参照にならない。
+
+---
+
+<br>
+
+# Claude Codeへの指示
+
+※実際にはここから都度変えて依頼している。
+
+## ■ 全体の実装戦略（重要）
+
+👉 バックエンド → フロントの順で進める
+
+### 理由👇
+
+- APIがないとフロントが作れない
+- Spring Bootの理解が進む
+
+## ■ 実装の全体ステップ
+
+① DB設計（Entity）<br>
+② Repository<br>
+③ Service<br>
+④ Controller（API完成）<br>
+⑤ 動作確認<br>
+⑥ Next.js実装<br>
+⑦ フロント連携<br>
+⑧ デプロイ<br>
+
+## ■ ステップ① Entity作成（最優先）
+
+### やること
+
+- tasksテーブル
+- work_logsテーブル
+
+### Claude Code用プロンプト
+
+```
+Spring Bootで、CLAUDE.mdの「DB設計」に記載しているEntityクラスを作成してください。
+
+【要件】
+・JPA（Hibernate）を使用
+・Lombokを使用
+・テーブル名も明示する
+
+【補足】
+・created_at, updated_atは自動設定にしてください
+```
+
+## ■ ステップ② Repository
+
+### Claude Code用プロンプト
+
+```
+Spring Data JPAを使用してRepositoryを作成してください。
+```
+
+## ■ ステップ③ Service（ロジック）
+
+### Claude Code用プロンプト
+
+```
+Serviceクラスを作成してください。
+
+【要件】
+・@Serviceを使用
+・Repositoryを利用する
+```
+
+## ■ ステップ④ Controller（API）
+
+### Claude Code用プロンプト
+
+```
+REST APIを作成してください。
+
+① TaskController
+
+- GET /tasks
+- POST /tasks
+- PUT /tasks/{id}
+- DELETE /tasks/{id}
+
+② WorkLogController
+
+- GET /tasks/{taskId}/worklogs
+- POST /tasks/{taskId}/worklogs
+
+【要件】
+・@RestControllerを使用
+・JSON形式でやり取り
+・CORS対応を追加
+```
+
+## ■ ステップ⑤ 動作確認（重要）
+
+### やること
+
+- Postman or curlで確認
+
+```bash
+curl http://localhost:8080/tasks
+```
+
+---
+
+👉 ここまでで
+バックエンド完成（超重要）
+
+## ■ ステップ⑥ Next.js実装
+
+### Claude Code用プロンプト
+
+```
+Next.js（TypeScript）で以下の画面を作成してください。
+
+① プロジェクト一覧画面
+
+- APIからプロジェクト一覧取得
+- 表示
+
+② タスク一覧画面
+
+- プロジェクト一覧画面からタスク一覧
+- APIからタスク一覧取得
+- 表示
+
+② タスク作成フォーム
+
+- title, description入力
+- POST /tasks
+
+【要件】
+・fetchまたはaxiosを使用
+・環境変数でAPI URL管理
+```
+
+## ■ ステップ⑦ フロント連携
+
+### Claude Code用プロンプト
+
+```
+Next.jsからSpring Boot APIに接続してください。
+
+【要件】
+・API URLは環境変数で管理
+・エラーハンドリング追加
+・ローディング状態を管理
+```
+
+## ■ ステップ⑧ 追加機能（余裕あれば）
+
+- 工数入力UI
+- 合計時間表示
+- ステータス管理（TODO / DOING / DONE）

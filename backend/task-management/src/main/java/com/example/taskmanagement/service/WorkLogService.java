@@ -22,59 +22,58 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WorkLogService {
 
-    /**
-     * ワークログリポジトリ
-     */
-    private final WorkLogRepository workLogRepository;
+        /**
+         * ワークログリポジトリ
+         */
+        private final WorkLogRepository workLogRepository;
 
-    /**
-     * タスクリポジトリ
-     */
-    private final TaskRepository taskRepository;
+        /**
+         * タスクリポジトリ
+         */
+        private final TaskRepository taskRepository;
 
-    /**
-     * ユーザリポジトリ
-     */
-    private final UserRepository userRepository;
+        /**
+         * ユーザリポジトリ
+         */
+        private final UserRepository userRepository;
 
-    /**
-     * ワークログを作成する
-     * 
-     * @param taskId   タスクID
-     * @param userId   ユーザーID
-     * @param workDate 作業日
-     * @param hours    時間
-     * @param memo     備考
-     * @return 作成されたワークログのレスポンスDTO
-     */
-    @Transactional
-    public WorkLogResponse createWorkLog(Long taskId, Long userId,
-            LocalDate workDate, BigDecimal hours, String memo) {
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task not found: " + taskId));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        /**
+         * ワークログを作成する
+         * 
+         * @param taskId   タスクID
+         * @param workDate 作業日
+         * @param hours    時間
+         * @param memo     備考
+         * @return 作成されたワークログのレスポンスDTO
+         */
+        @Transactional
+        public WorkLogResponse createWorkLog(Long taskId, String email, LocalDate workDate, BigDecimal hours,
+                        String memo) {
+                Task task = taskRepository.findById(taskId)
+                                .orElseThrow(() -> new RuntimeException("Task not found: " + taskId));
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
-        WorkLog workLog = new WorkLog();
-        workLog.setTask(task);
-        workLog.setUser(user);
-        workLog.setWorkDate(workDate);
-        workLog.setHours(hours);
-        workLog.setMemo(memo);
+                WorkLog workLog = new WorkLog();
+                workLog.setTask(task);
+                workLog.setUser(user);
+                workLog.setWorkDate(workDate);
+                workLog.setHours(hours);
+                workLog.setMemo(memo);
 
-        return WorkLogResponse.from(workLogRepository.save(workLog));
-    }
+                return WorkLogResponse.from(workLogRepository.save(workLog));
+        }
 
-    /**
-     * タスクIDでワークログを取得する
-     * 
-     * @param taskId タスクID
-     * @return ワークログのレスポンスDTOのリスト
-     */
-    @Transactional(readOnly = true)
-    public List<WorkLogResponse> getWorkLogsByTaskId(Long taskId) {
-        return workLogRepository.findByTaskId(taskId).stream()
-                .map(WorkLogResponse::from)
-                .toList();
-    }
+        /**
+         * タスクIDでワークログを取得する
+         * 
+         * @param taskId タスクID
+         * @return ワークログのレスポンスDTOのリスト
+         */
+        @Transactional(readOnly = true)
+        public List<WorkLogResponse> getWorkLogsByTaskId(Long taskId) {
+                return workLogRepository.findByTaskId(taskId).stream()
+                                .map(WorkLogResponse::from)
+                                .toList();
+        }
 }
