@@ -27,6 +27,11 @@ public class TaskResponse {
     private final Long projectId;
 
     /**
+     * プロジェクト名
+     */
+    private final String projectName;
+
+    /**
      * タスク名
      */
     private final String title;
@@ -37,9 +42,9 @@ public class TaskResponse {
     private final String description;
 
     /**
-     * アサインされたユーザIDのリスト
+     * アサインされたユーザのリスト
      */
-    private final List<Long> assignedUserIds;
+    private final List<AssignedUser> assignedUsers;
 
     /**
      * ステータス
@@ -72,6 +77,20 @@ public class TaskResponse {
     private final LocalDateTime updatedAt;
 
     /**
+     * アサインされたユーザクラス
+     */
+    @Getter
+    public static class AssignedUser {
+        private final Long id;
+        private final String name;
+
+        public AssignedUser(Long id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+    }
+
+    /**
      * タスクエンティティからレスポンスDTOを作成するコンストラクタ
      * 
      * @param task タスクエンティティ
@@ -79,10 +98,11 @@ public class TaskResponse {
     private TaskResponse(Task task) {
         this.id = task.getId();
         this.projectId = task.getProject().getId();
+        this.projectName = task.getProject().getName();
         this.title = task.getTitle();
         this.description = task.getDescription();
-        this.assignedUserIds = task.getTaskAssignments().stream()
-                .map(a -> a.getUser().getId())
+        this.assignedUsers = task.getTaskAssignments().stream()
+                .map(a -> new AssignedUser(a.getUser().getId(), a.getUser().getName()))
                 .toList();
         this.status = task.getStatus();
         this.priority = task.getPriority();

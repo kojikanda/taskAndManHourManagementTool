@@ -9,6 +9,11 @@
       "name": "jwt.expiration",
       "type": "java.lang.Long",
       "description": "JWTトークンの有効期限（ミリ秒）"
+    },
+    {
+      "name": "cors.allowed-origins",
+      "type": "java.lang.String",
+      "description": "CORSで許可するオリジン（フロントエンドのURL）"
     }
   ]
 }

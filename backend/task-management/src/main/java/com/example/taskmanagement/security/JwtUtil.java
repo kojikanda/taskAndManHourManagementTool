@@ -33,14 +33,16 @@ public class JwtUtil {
     }
 
     /**
-     * メールアドレスからJWTトークンを生成する
+     * メールアドレスとユーザIDからJWTトークンを生成する
      * 
-     * @param email ユーザのメールアドレス
+     * @param email  ユーザのメールアドレス
+     * @param userId ユーザID
      * @return 生成されたJWTトークン
      */
-    public String generateToken(String email) {
+    public String generateToken(String email, Long userId) {
         return Jwts.builder()
                 .subject(email)
+                .claim("userId", userId)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(secretKey)
@@ -55,6 +57,13 @@ public class JwtUtil {
      */
     public String extractEmail(String token) {
         return extractClaims(token).getSubject();
+    }
+
+    /**
+     * トークンからユーザIDを抽出する
+     */
+    public Long extractUserId(String token) {
+        return extractClaims(token).get("userId", Long.class);
     }
 
     /**

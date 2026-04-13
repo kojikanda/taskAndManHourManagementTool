@@ -1198,9 +1198,273 @@ ServiceでEntityを返すのではなく、**DTO**を返すようにする。
 
 <br>
 
+# Next.js実装
+
+## ■JWTトークンの保存場所
+
+- localStorage → シンプルだが、XSS攻撃に弱い
+- httpOnly Cookie → セキュアだが、バックエンド側でもCookie設定が必要になる
+
+今回はポートフォリオとして開発しているため**localStorage**で進める。
+
+### ◯どうしてlocalStorageにしたのか
+
+- 初期開発のスピードを優先した
+- JWT認証の基本フロー理解を目的とした
+- 本番ではhttpOnly Cookieに移行可能な設計にしている
+
+## ■トースト通知のライブラリ
+
+- notistack → MUIのSnackbarをラップ。MUIと見た目が統一できる
+- react-hot-toast → よりシンプルで軽量
+
+### ◯notistack
+
+#### ・特徴
+
+- MUIベース
+- Snackbarの拡張
+- 複雑な制御が可能
+
+### ・デメリット
+
+- MUI前提
+- 少し重い
+- セットアップがやや面倒
+
+### ◯react-hot-toast
+
+- 超シンプル
+- 軽量
+- 見た目がモダン
+- カスタマイズしやすい
+
+### ◯なぜnotistackにしたのか
+
+- MUIとの統一性を重視した
+- 実務での利用頻度を考慮した
+- Snackbarの制御を柔軟にしたかった
+
+## ■フォームライブラリ
+
+- react-hook-form → パフォーマンスが良く、バリデーションも書きやすい。現在のReactプロジェクトでデファクトスタンダード
+
+react-hook-formを使うことで、必要なところだけ再レンダリングでき、パフォーマンスが良くなる。
+
+### ◯react-hook-formとは
+
+React Hook Formは、Reactでフォームを扱いやすくするためのライブラリ。
+
+Reactでは通常、フォームの各入力欄をuseStateで管理し、それを集めてバリデーションして…という処理が必要になる。<br>
+React Hook Form を使うと、そういった作業を簡潔に書けるようになる。
+
+具体的には以下のようなことができる：
+
+- 入力値の管理
+- バリデーション（必須、桁数、数値制限など）
+- エラーメッセージの表示
+- フォームの送信処理
+
+### ◯Reactとの関係性
+
+React Hook Formの中核はuseForm()というカスタムフック。<br>
+これはReactのHookシステム（useStateやuseEffect など）と同じ考え方で、フォームの状態を扱えるようにしたもの。
+
+React の設計に沿っているため、シンプルなコードが書ける。
+
+### ◯実際にどう使うのか
+
+#### ・useForm の初期化
+
+まずはUseFormを使って、フォーム全体の管理を準備する。
+
+```typescript
+import { useForm } from "react-hook-form";
+
+const {
+  register,
+  handleSubmit,
+  formState: { errors },
+} = useForm();
+```
+
+- register
+  - 各 input に適用して、フォームとして認識させる
+- handleSubmit
+  - フォーム送信時にバリデーションを走らせてから処理を行う
+- errors
+  - バリデーションでエラーになった項目の情報が入る
+
+#### ・入力欄の登録
+
+次に、フォームの中にある&lt;input/&gt;や&lt;textarea/&gt;にregisterを使って登録する。
+
+```typescript
+<input {...register("title", { required: "タイトルは必須です" })} />
+```
+
+ここで "title" はフィールド名。オブジェクト形式でバリデーションルールも指定できる。<br>
+
+**...register**とスプレッド構文で書いているのは、registerの戻り値が以下のプロパティで返ってくるため。
+
+```typescript
+{
+  name: "email",
+  ref: (element) => { ... },
+  onChange: (e) => { ... },
+  onBlur: (e) => { ... },
+}
+```
+
+コンポーネントのPropsとして渡すには、以下のような構文で渡す必要がある。<br>
+スプレット構文は例外として、書き方が認められている。<br>
+よって、registerをコンポーネントに指定するには、必ずスプレッド構文で書かないといけない。
+
+```typescript
+// かならず、propName={値}という形で渡さないといけない
+// スプレッド構文は例外として、そのような形の書き方が認められている
+<TextField
+  name="email"
+  ref={...}
+  onChange={(e) => { ... }}
+  onBlur={(e) => { ... }}
+/>
+```
+
+#### ・エラーの表示
+
+バリデーションエラーがある場合は、errors に情報が入る。<br>
+それを使って、該当する入力欄の下にエラー文を表示する。
+
+```typescript
+{errors.title && <p>{errors.title.message}</p>}
+```
+
+##### 実際の例
+
+```typescript
+<TextField
+  label="パスワード"
+  type="password"
+  fullWidth
+  margin="normal"
+  {...register("password", { // フォームとして認識させる
+    required: "パスワードを入力してください",
+  })}
+  error={!!errors.password} // 成功時はerrors.passwordがundefinedになるので、!!でfalseになる。trueのときはボーダーやラベルが赤色になる。
+  helperText={errors.password?.message} // コンポーネントの下にエラーメッセージを表示する。
+/>
+```
+
+#### ・フォーム送信処理
+
+送信時にはhandleSubmitを使う。<br>
+バリデーションが通ったときのみ、引数で指定した関数が呼ばれる。
+
+尚、onSubmit内で、event.preventDefault()をコールして、ブラウザのデフォルト動作(ページのリロード)を停止する必要はない。<br>
+これは、react-hook-formが勝手に呼んでくれるため。
+
+```typescript
+const onSubmit = (data) => {
+  console.log(data); // data は各 register() に対応する値のまとまり
+};
+
+<form onSubmit={handleSubmit(onSubmit)}>
+  {/* 各 input 要素 */}
+  <button type="submit">送信</button>
+</form>
+```
+
+#### ・よく使うバリデーションの例
+
+```typescript
+register("time", {
+  required: "時間の入力は必須です",
+  min: {
+    value: 1,
+    message: "時間は0以上である必要があります",
+  },
+});
+```
+
+#### ・React Hook Form のメリット
+
+- 入力値をuseStateで個別に管理する必要がない
+- バリデーション処理をわかりやすく書ける
+- コードが短くなり、読みやすくなる
+
+## ■型定義
+
+src/types/index.jsに型の定義を設定する。<br>
+ここでも、エンティティ型とAPIリクエスト・レスポンスの療法を設定する。
+
+## ■axios
+
+axiosはfetchの代わりに使うAPI。<br>
+今回は各リクエストに、毎回JWTトークンの情報を付加して送信しないといけないので、**インジェクション**が簡単にできるaxiosが便利。
+
+```typescript
+import axios from "axios";
+
+// axiosのインスタンスを作成し、APIのベースURLを設定
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+});
+
+// リクエストインターセプター: 毎回のリクエストにJWTトークンを自動付与する
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+```
+
+## ■ユーザ認証関連情報の扱い
+
+src/contexts/AuthContext.tsxで、ユーザ認証関連情報を取得するためのメソッドを実装する。
+
+今回のアプリでは、各画面でログインしているユーザの情報が必要となるため、どの画面でもユーザの情報が取れるようにしたい。
+
+これに対応するため、**コンテキスト**を利用する。<br>
+このコンテキストを持つ共通コンポーネントで子コンポーネントをラップし、また、コンテキストのフックを取得するためのメソッドも別途提供することで、子コンポーネントのどこからでも、ユーザの情報が取れるようにする。
+
+## ■コンポーネント
+
+- Box → Divのような多目的コンポーネント
+- Container → Boxの一種。コンテンツを水平方向に中央配置する。
+- Paper → Boxの一種。表面を浮き上がらせる。
+- Typography → 文字列を扱うためのコンポーネント。
+- TextField → テキストフィールド
+- Button → ボタン
+- MuiLink → ハイパーリンク
+
+## ■プロパティ
+
+- maxWidth="xs" → 最大幅をExtra Small(一般的に444pxまたは600px未満)にする
+- elevation={3} → &lt;Paper&gt;コンポーネントなどの背景に、3段階目の深さ（影）を適用するプロパティ。
+- fullWidth → 親要素の横幅いっぱいまで広げる
+- margin="normal" → MUIのテーマに基づいた、適切な上下のmarginを適用する
+- variant="contained" → 背景色付きで影（シャドウ）を持つ、強調された塗りつぶしボタン
+- variant="body2" → 主に補足説明、キャプション、長い本文など、通常の本文（body1）よりも少し小さめのフォントサイズやスタイルを適用するために使用される。
+
+## ■CSS
+
+- minHeight: "100vh" → 最小の高さが100%
+- display: "flex" → Flexboxを使う
+- alignItems: "center" → 縦方向で真ん中に置く
+- justifyContent: "center" → 横方向で真ん中に置く
+- bgcolor: "grey.100" → 薄いグレー。値は50~900が指定可能。
+
+---
+
+<br>
+
 # Claude Codeへの指示
 
-※実際にはここから都度変えて依頼している。
+※実際にはここから都度変えて依頼している。<br>
+※フロントエンド実装は、CLAUDE.mdにやりたいことを書いて、その内容で進めて、と依頼した。
 
 ## ■ 全体の実装戦略（重要）
 

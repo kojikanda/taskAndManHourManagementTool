@@ -71,7 +71,7 @@ public class Task {
     private LocalDate dueDate;
 
     /**
-     * 予想工数
+     * 見積時間
      */
     @Column(name = "estimated_hours", precision = 5, scale = 1)
     private BigDecimal estimatedHours;

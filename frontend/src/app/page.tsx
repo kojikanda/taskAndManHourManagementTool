@@ -1,66 +1,120 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
 
-export default function Home() {
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { useSnackbar } from "notistack";
+import {
+  Box,
+  Button,
+  Container,
+  Paper,
+  TextField,
+  Typography,
+  Link as MuiLink,
+} from "@mui/material";
+import Link from "next/link";
+import api from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { LoginRequest, LoginResponse } from "@/types";
+
+/**
+ * ログインページコンポーネント
+ * @returns ログインページコンポーネント
+ */
+export default function LoginPage() {
+  const router = useRouter();
+  const { user, login } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginRequest>();
+
+  // すでにログイン済みの場合はプロジェクト一覧へリダイレクト
+  useEffect(() => {
+    if (user) {
+      router.replace("/projects");
+    }
+  }, [user, router]);
+
+  // ログインボタンが押下されたときのイベントハンドラ
+  const onSubmit = async (data: LoginRequest) => {
+    try {
+      // loginのAPIリクエスト送信
+      const response = await api.post<LoginResponse>("/auth/login", data);
+      // ローカルストレージにユーザの情報を設定
+      login(response.data);
+      enqueueSnackbar("ログインしました", { variant: "success" });
+      router.push("/projects");
+    } catch {
+      enqueueSnackbar("メールアドレスまたはパスワードが正しくありません", {
+        variant: "error",
+      });
+    }
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        bgcolor: "grey.100",
+      }}
+    >
+      <Container maxWidth="xs">
+        <Paper elevation={3} sx={{ p: 4 }}>
+          <Typography variant="h5" fontWeight="bold" textalign="center" mb={3}>
+            タスク工数管理ツール
+          </Typography>
+
+          <Box component="form" onSubmit={handleSubmit(onSubmit)}>
+            <TextField
+              label="メールアドレス"
+              type="email"
+              fullWidth
+              margin="normal"
+              {...register("email", {
+                required: "メールアドレスを入力してください",
+              })}
+              error={!!errors.email}
+              helperText={errors.email?.message}
             />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            <TextField
+              label="パスワード"
+              type="password"
+              fullWidth
+              margin="normal"
+              {...register("password", {
+                required: "パスワードを入力してください",
+              })}
+              error={!!errors.password}
+              helperText={errors.password?.message}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              size="large"
+              disabled={isSubmitting}
+              sx={{ mt: 2 }}
+            >
+              {isSubmitting ? "ログイン中..." : "ログイン"}
+            </Button>
+          </Box>
+
+          <Typography variant="body2" textalign="center" mt={2}>
+            アカウントをお持ちでない方は{" "}
+            <MuiLink component={Link} href="/register">
+              こちら
+            </MuiLink>
+          </Typography>
+        </Paper>
+      </Container>
+    </Box>
   );
 }

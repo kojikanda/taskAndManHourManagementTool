@@ -88,12 +88,16 @@
 		</dependency>
 
 		<!-- DevTools for development -->
+		<!-- Spring Boot DevToolsは開発時にホットリロードができるように追加したが、ソースの編集により何度も再起動してしまうので、コメントアウト -->
+		<!--
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
 			<scope>runtime</scope>
 			<optional>true</optional>
 		</dependency>
+		-->
+
 		<!-- Configuration Processor for @ConfigurationProperties -->
 		<dependency> 
 			<groupId>org.springframework.boot</groupId>

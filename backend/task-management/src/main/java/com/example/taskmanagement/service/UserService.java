@@ -1,5 +1,6 @@
 package com.example.taskmanagement.service;
 
+import com.example.taskmanagement.dto.LoginResponse;
 import com.example.taskmanagement.entity.User;
 import com.example.taskmanagement.repository.UserRepository;
 import com.example.taskmanagement.security.JwtUtil;
@@ -70,9 +71,9 @@ public class UserService {
      * 
      * @param email       メールアドレス
      * @param rawPassword 生パスワード
-     * @return JWTトークン
+     * @return ログインレスポンスDTO（JWTトークンを含む）
      */
-    public String login(String email, String rawPassword) {
+    public LoginResponse login(String email, String rawPassword) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
@@ -80,6 +81,7 @@ public class UserService {
             throw new RuntimeException("Invalid email or password");
         }
 
-        return jwtUtil.generateToken(email);
+        String token = jwtUtil.generateToken(email, user.getId());
+        return new LoginResponse(token, user.getId(), user.getName(), user.getEmail());
     }
 }
