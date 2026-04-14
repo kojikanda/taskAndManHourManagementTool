@@ -40,7 +40,7 @@ public class Task {
     private Project project;
 
     /**
-     * タスクタイトル
+     * タスク名
      */
     @Column(nullable = false)
     private String title;

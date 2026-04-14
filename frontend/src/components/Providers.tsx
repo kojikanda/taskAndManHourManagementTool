@@ -1,8 +1,14 @@
 "use client";
 
-import { ReactNode } from "react";
 import { SnackbarProvider } from "notistack";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
+import "dayjs/locale/ja";
 import { AuthProvider } from "@/contexts/AuthContext";
+
+// dayjs本体に日本語使用を指定
+dayjs.locale("ja");
 
 /**
  * プロバイダコンポーネント。
@@ -11,19 +17,17 @@ import { AuthProvider } from "@/contexts/AuthContext";
  * @param children 子コンポーネント
  * @returns プロバイダコンポーネント
  */
-export default function Providers({ children }: { children: ReactNode }) {
+export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <SnackbarProvider
-        // 最大3件のトーストを同時表示
-        maxSnack={3}
-        // トーストの配置指定
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        // 3秒後に自動て閉じる
-        autoHideDuration={5000}
-      >
-        {children}
-      </SnackbarProvider>
-    </AuthProvider>
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ja">
+      <AuthProvider>
+        <SnackbarProvider
+          maxSnack={3}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          {children}
+        </SnackbarProvider>
+      </AuthProvider>
+    </LocalizationProvider>
   );
 }

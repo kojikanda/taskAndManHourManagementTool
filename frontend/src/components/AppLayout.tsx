@@ -15,17 +15,23 @@ type Props = {
  * 未ログインの場合はログイン画面へリダイレクトする。
  */
 export default function AppLayout({ children }: Props) {
-  const { user } = useAuth();
+  const { user, initialized } = useAuth();
   const router = useRouter();
 
   // 未ログインはログイン画面へ
   useEffect(() => {
+    // initializedがtrueになった後にのみリダイレクト判定する
+    // （false のうちに判定すると、ログイン済みユーザが誤ってリダイレクトされる）
+    if (!initialized) return;
+
     if (!user) {
+      // ログインしていないときはログインページにリダイレクト
       router.replace("/");
     }
-  }, [user, router]);
+  }, [user, initialized, router]);
 
-  if (!user) return null;
+  // 初期化前 or 未ログインは何も表示しない
+  if (!initialized || !user) return null;
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "grey.50" }}>

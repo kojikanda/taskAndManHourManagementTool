@@ -1544,6 +1544,41 @@ MUIのSkeletonは「読み込み中のプレースホルダー」を表示する
 - height={120}: 高さ：120px
 - sx={{ borderRadius: 2 }}: 角丸（MUIのスペーシング単位 = 16px）
 
+## &lt;Select&gt;に対するuseFormについて
+
+useFormのregisterはネイティブの&lt;input&gt;要素に直接参照を渡す仕組みである。<br>
+これに対し、MUIの&lt;select&gt;はネイティブの&lt;input&gt;ではないため、registerが使えない<br>
+
+これを解決するため、Controllerを使用し、フォームのvalue/onChangeをreact-hook-formと橋渡しする役割を担う。
+
+```typescript
+<Controller
+  name="example"
+  control={control}
+  defaultValue=""
+  rules={{
+    maxLength: {
+      value: 100,
+      message: "100文字以内で入力してください",
+    },
+  }}
+  render={({ field, fieldState: { error } }) => (
+    <TextField
+      {...field}
+      label="Example"
+      error={!!error}
+      helperText={error?.message}
+      inputProps={{ maxLength: 100 }}
+    />
+  )}
+/>
+
+// 文字数制限について
+// inputProps={{ maxLength }}	HTMLレベルで入力を物理的にブロック
+// rules={{ maxLength }}	バリデーションでエラーメッセージを表示
+// inputProps だけだとフォーム送信時のバリデーションが効かず、rulesだけだと文字は入力できてしまうので、両方セットで使うのが基本。
+```
+
 ## ■コンポーネント
 
 - Box → Divのような多目的コンポーネント
@@ -1554,20 +1589,8 @@ MUIのSkeletonは「読み込み中のプレースホルダー」を表示する
 - Button → ボタン
 - MuiLink → ハイパーリンク
 - CardActionArea → Cardコンポーネント全体をクリッカブル（クリック可能）にし、ホバー時などにマテリアルデザインのリップル効果や背景色変化を自動で適用するラッパーコンポーネント
-
-## ■プロパティ
-
-- maxWidth="xs" → 最大幅をExtra Small(一般的に444pxまたは600px未満)にする
-- elevation={3} → &lt;Paper&gt;コンポーネントなどの背景に、3段階目の深さ（影）を適用するプロパティ。
-- fullWidth → 親要素の横幅いっぱいまで広げる
-- margin="normal" → MUIのテーマに基づいた、適切な上下のmarginを適用する
-- variant="contained" → 背景色付きで影（シャドウ）を持つ、強調された塗りつぶしボタン
-- variant="body2" → 主に補足説明、キャプション、長い本文など、通常の本文（body1）よりも少し小さめのフォントサイズやスタイルを適用するために使用される。
-- multiline → textareaタグを使用するように設定。
-- rows={3} → 最小の高さが3行分になる。
-- exclusive → トグルボタングループ(ToggleButtonGroup)で、選択できるトグルボタンを1つにする指定。
-- container spacing={2} → Gridの親にspacingを指定し、子要素（Grid item）の間に均等な間隔（デフォルトでは16px: 8px✕2）を自動的に設定する
-- gutterBottom → これをtrue（単にgutterBottomと記述）に設定すると、テキスト要素の下部にマージン（margin-bottom）が自動的に追加され、要素間の余白を簡単に確保できる
+- FormControl → フォームの入力要素（input、textareaなど）に対して、ラベル、ヘルプテキスト、エラーメッセージをセットで管理し、アクセシビリティ（障害者や高齢者を含む使いやすさ）を高めるためのコンポーネント
+- OutlinedInput → 枠線付きのテキスト入力フィールドを構築するための、Material-UIの低レベルコンポーネント
 
 - List → リスト全体のコンテナ。
 - ListItem → 各リスト要素の基本コンポーネント。
@@ -1582,15 +1605,35 @@ MUIのSkeletonは「読み込み中のプレースホルダー」を表示する
 - DialogContentText → 説明文
 - DialogActions → ボタン類
 
+## ■プロパティ
+
+- maxWidth="xs" → 最大幅をExtra Small(一般的に444pxまたは600px未満)にする
+- elevation={3} → &lt;Paper&gt;コンポーネントなどの背景に、3段階目の深さ（影）を適用するプロパティ。
+- fullWidth → 親要素の横幅いっぱいまで広げる
+- margin="normal" → MUIのテーマに基づいた、適切な上下のmarginを適用する
+- variant="contained" → 背景色付きで影（シャドウ）を持つ、強調された塗りつぶしボタン
+- variant="body2" → 主に補足説明、キャプション、長い本文など、通常の本文（body1）よりも少し小さめのフォントサイズやスタイルを適用するために使用される。
+- multiline → textareaタグを使用するように設定。
+- rows={3} → 最小の高さが3行分になる。
+- exclusive → トグルボタングループ(ToggleButtonGroup)で、選択できるトグルボタンを1つにする指定。
+- container spacing={2} → Gridの親にspacingを指定し、子要素（Grid item）の間に均等な間隔（デフォルトでは16px: 8px✕2）を自動的に設定する
+- gutterBottom → これをtrue（単にgutterBottomと記述）に設定すると、テキスト要素の下部にマージン（margin-bottom）が自動的に追加され、要素間の余白を簡単に確保できる
+- renderValue(Select) → 選択された値をどのように表示するかを決定するメソッドを指定する
+
 ## ■CSS
 
 - minHeight: "100vh" → 最小の高さが100%
 - display: "flex" → Flexboxを使う
 - alignItems: "center" → 縦方向で真ん中に置く
 - justifyContent: "center" → 横方向で真ん中に置く
+- justifyContent: "flex-start" → Flexboxコンテナ内の要素（アイテム）を主軸（デフォルトでは横方向）の左端（開始位置）に寄せて配置するスタイル指定
 - justifyContent: "space-between" → Flexboxコンテナ内の要素を両端揃えし、要素間の余白を均等にするスタイル
 - bgcolor: "grey.100" → 薄いグレー。値は50~900が指定可能。
 - flexShrink: 0 → Flexboxレイアウトにおいて、親要素の幅に対して子要素が収まりきらない（オーバーフローする）場合に、その子要素をどれだけ縮小させるか（縮む比率）を指定するプロパティ
+- flexWrap: "wrap" → フレックスアイテム(子要素)の折り返しを許可する
+- gap: 2 → フレックスアイテム間の間隔(マージン)を指定する
+- flexWrap: "wrap" → 異なる高さの要素が並んでいる場合、すべての要素が一番下（底辺）のラインで揃える
+- whiteSpace: "nowrap" → 改行しない
 
 ---
 

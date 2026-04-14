@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { LoginResponse } from "@/types";
 
 /**
@@ -18,6 +24,7 @@ type AuthUser = {
  */
 type AuthContextType = {
   user: AuthUser | null;
+  initialized: boolean;
   login: (data: LoginResponse) => void;
   logout: () => void;
 };
@@ -54,6 +61,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 遅延初期化: 初回レンダリング時に一度だけ loadUserFromStorage() を呼ぶ
   // useState(メソッド)で、遅延初期化となり、初回レンダリング時に一度だけ実行される
   const [user, setUser] = useState<AuthUser | null>(loadUserFromStorage);
+  // localStorage の読み込みが完了したか
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    // マウント後にlocalStorageから読み込む
+    const stored = loadUserFromStorage();
+    // 初回マウント時のみlocalStorageから復元させるため、ESLintの警告を回避させる
+    // eslint-disable-next-line
+    setUser(stored);
+    setInitialized(true);
+  }, []);
 
   // ログインレスポンスの情報をローカルストレージに設定するメソッド
   const login = (data: LoginResponse) => {
@@ -74,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, initialized, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

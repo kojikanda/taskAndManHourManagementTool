@@ -52,7 +52,7 @@ public class TaskService {
      * タスクを作成する
      * 
      * @param projectId       プロジェクトID
-     * @param title           タスクタイトル
+     * @param title           タスク名
      * @param description     タスク説明
      * @param assignedUserIds アサインするユーザIDのリスト
      * @param status          ステータス
@@ -98,7 +98,7 @@ public class TaskService {
      * タスクを更新する
      * 
      * @param id             タスクID
-     * @param title          タスクタイトル
+     * @param title          タスク名
      * @param description    タスクの説明
      * @param status         ステータス
      * @param priority       優先度

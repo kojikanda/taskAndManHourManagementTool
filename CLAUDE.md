@@ -173,7 +173,7 @@ UIはReactのMUIを利用する。
 - プロジェクト一覧画面からプロジェクトのカードをクリックすると、タスク一覧画面が表示される。
   - タスク一覧はテーブルで表示する。
   - タスク一覧は以下のカラムを表示し、それぞれでソート可能。
-    - タスクタイトル
+    - タスク名
     - プロジェクト名
     - アサインされたユーザ
     - ステータス(バッジ表示)
@@ -181,7 +181,7 @@ UIはReactのMUIを利用する。
     - 期限
     - 見積時間
     - 更新日時
-  - ソートしているカラムのタイトル行は「期限 ↑」という漢字の表示にして、ソートしていることが分かるようにする。
+  - ソートしているカラムのタイトル行は「期限 ↑」という感じの表示にして、ソートしていることが分かるようにする。
   - タスク一覧の優先度は、値に応じてバッジの背景色を変える。
     - HIGH→薄い赤背景 + 赤文字
     - MEDIUM→薄いオレンジ
@@ -202,7 +202,7 @@ UIはReactのMUIを利用する。
   - タスク一覧画面のステータス、優先度のバッジ表示をクリックすると、ドロップダウンが表示され、インライン編集が可能。
   - タスク一覧に1件もないときは、テーブルの位置に「タスクがありません」の表示を行う。
 - タスク一覧からタスクの行をクリックすると、タスク詳細画面が表示される。
-  - タスク詳細画面は、ステータス、優先度、期限、見積時間、実績時間、見積時間と実績時間の差分、及び、ワークログ一覧を表示する。
+  - タスク詳細画面は、タスク名(タイトル)、説明、担当者、ステータス、優先度、期限、見積時間、実績時間、見積時間と実績時間の差分、及び、ワークログ一覧を表示する。
   - 見積時間と実績時間の差分は、値がプラスの場合は赤色で、値がマイナスの場合は緑色で表示する。
   - タスク詳細画面で、ステータス、優先度の変更が可能。
   - ワークログ一覧は日付の新しい方から順番に(DESC)表示する。
@@ -333,12 +333,28 @@ frontend/
     │   ├── layout.tsx                # 更新（AppRouterCacheProvider / Providers 組み込み）
     │   ├── page.tsx                  # 更新（ログイン画面）
     │   ├── globals.css
-    │   └── register/
-    │       └── page.tsx              # 追加（ユーザ登録画面）
+    │   ├── register/
+    │   │   └── page.tsx              # 追加（ユーザ登録画面）
+    │   ├── projects/
+    │   │   └── page.tsx              # 追加（プロジェクト一覧画面）
+    │   └── tasks/
+    │       └── my/
+    │           └── page.tsx          # 追加（自担当タスク一覧画面）
+    ├── app/projects/[id]/tasks/
+    │   └── page.tsx                  # 追加（プロジェクト別タスク一覧画面）
     ├── components/
-    │   └── Providers.tsx             # 追加（AuthProvider + SnackbarProvider をまとめたクライアントコンポーネント）
+    │   ├── Providers.tsx             # 追加（AuthProvider + SnackbarProvider + LocalizationProvider）
+    │   ├── AppLayout.tsx             # 追加（サイドバー付きレイアウト・認証ガード）
+    │   ├── Sidebar.tsx               # 追加（サイドバー）
+    │   ├── TaskListView.tsx          # 追加（タスク一覧共通コンポーネント）
+    │   └── modals/
+    │       ├── CreateProjectModal.tsx # 追加（プロジェクト作成モーダル）
+    │       └── CreateTaskModal.tsx   # 追加（タスク作成モーダル）
     ├── contexts/
-    │   └── AuthContext.tsx           # 追加（JWT認証状態のグローバル管理）
+    │   └── AuthContext.tsx           # 追加（JWT認証状態のグローバル管理・initialized フラグ付き）
+    ├── hooks/
+    │   ├── useProjects.ts            # 追加（プロジェクト一覧取得カスタムフック）
+    │   └── useTasks.ts               # 追加（タスク一覧取得カスタムフック）
     ├── lib/
     │   └── api.ts                    # 追加（axiosインスタンス・JWTインターセプター）
     └── types/
@@ -350,25 +366,13 @@ frontend/
 ```
 src/
 ├── app/
-│   └── projects/
-│       ├── page.tsx                  # プロジェクト一覧画面
-│       └── [id]/
-│           └── tasks/
-│               ├── page.tsx          # タスク一覧画面
-│               └── [taskId]/
-│                   └── page.tsx      # タスク詳細画面
+│   └── projects/[id]/tasks/[taskId]/
+│       └── page.tsx                  # タスク詳細画面
 ├── components/
-│   ├── AppLayout.tsx                 # サイドバー付きレイアウト
-│   ├── Sidebar.tsx                   # サイドバー
 │   └── modals/
-│       ├── CreateProjectModal.tsx    # プロジェクト作成モーダル
-│       ├── CreateTaskModal.tsx       # タスク作成モーダル
 │       └── CreateWorkLogModal.tsx    # ワーク実績入力モーダル
-├── hooks/
-│   ├── useProjects.ts
-│   ├── useTasks.ts
-│   └── useWorkLogs.ts
-└── (projects/, register/ は実装済み)
+└── hooks/
+    └── useWorkLogs.ts                # ワークログ取得カスタムフック
 ```
 
 ## 進捗状況
@@ -437,30 +441,58 @@ src/
 
 ### フロントエンド実装（進行中）
 
-- 追加パッケージ: `axios`, `react-hook-form`, `notistack`, `@mui/material-nextjs`, `@emotion/cache`
+- 追加パッケージ: `axios`, `react-hook-form`, `notistack`, `@mui/material-nextjs`, `@emotion/cache`, `@mui/x-date-pickers`, `dayjs`
 - VSCode デバッグ設定（`launch.json`）に Next.js 起動設定を追加
 - 実装済み画面・コンポーネント
   - `types/index.ts` → TypeScript型定義（全エンティティ・リクエスト・レスポンス型）
   - `lib/api.ts` → axiosインスタンス（JWTインターセプター付き）
-  - `contexts/AuthContext.tsx` → 認証状態のグローバル管理（localStorage連携）
-  - `components/Providers.tsx` → AuthProvider + SnackbarProvider のまとめ
+  - `contexts/AuthContext.tsx` → 認証状態のグローバル管理（localStorage連携・initialized フラグ付き）
+  - `components/Providers.tsx` → AuthProvider + SnackbarProvider + LocalizationProvider のまとめ
   - `app/layout.tsx` → AppRouterCacheProvider・CssBaseline・Providers を組み込み
   - `app/page.tsx` → ログイン画面（react-hook-form・トースト通知）
   - `app/register/page.tsx` → ユーザ登録画面（青系デザインでログイン画面と差別化）
-  - ログイン・ログアウト・ユーザ登録の動作確認済み
+  - `components/Sidebar.tsx` → サイドバー（ダークテーマ・ナビゲーション・ログアウト）
+  - `components/AppLayout.tsx` → サイドバー付きレイアウト（認証ガード・ハイドレーション対応）
+  - `components/TaskListView.tsx` → タスク一覧共通コンポーネント（フィルタリング・ソート・インライン編集）
+  - `app/projects/page.tsx` → プロジェクト一覧画面（トグルボタンフィルタ・カード表示・スケルトンUI）
+  - `app/projects/[id]/tasks/page.tsx` → プロジェクト別タスク一覧画面
+  - `app/tasks/my/page.tsx` → 自担当タスク一覧画面（全プロジェクト横断）
+  - `components/modals/CreateProjectModal.tsx` → プロジェクト作成モーダル
+  - `components/modals/CreateTaskModal.tsx` → タスク作成モーダル（DatePicker・担当者複数選択）
+  - `hooks/useProjects.ts` → プロジェクト一覧取得カスタムフック（filter対応）
+  - `hooks/useTasks.ts` → タスク一覧取得カスタムフック（projectId / assignedUserId 対応）
+  - 全画面の動作確認済み
+
+- バックエンド追加修正（フロントエンド実装対応）
+  - `ProjectController.java` → 追加（GET /projects, POST /projects）
+  - `UserController.java` → 追加（GET /users）
+  - `ProjectRepository.java` → 担当タスクで絞り込むクエリ追加
+  - `ProjectService.java` → getAllProjects, getProjectsByAssignedUserId 追加
+  - `TaskRepository.java` → findByAssignedUserId クエリ追加
+  - `TaskService.java` → getTaskById, getTasksByAssignedUserId 追加
+  - `TaskController.java` → GET /tasks/{taskId}, GET /tasks/assigned/{userId} 追加
+  - `security/UserPrincipal.java` → 追加（UserDetails実装・userId保持）
+  - `security/UserDetailsServiceImpl.java` → UserPrincipal を返すように変更
+  - `dto/ProjectResponse.java`, `CreateProjectRequest.java`, `UserResponse.java` → 追加
+  - POST /projects でオーナーIDをJWTから取得する設計（@AuthenticationPrincipal 使用）
+
+- 主要な技術的対応事項
+  - MUI v9 の破壊的変更対応（`primaryTypographyProps` → `slotProps.primary` など）
+  - MUI Menu のアニメーション問題対応（open state と anchorEl state を分離）
+  - React Compiler のリント警告対応（`// eslint-disable-next-line` で回避）
+  - ハイドレーションエラー対応（AuthContext に `initialized` フラグを追加し、AppLayout で初期化完了を待つ）
+  - React Compiler の誤検知（useEffect 内 setState 警告）の回避
 
 ### 次のステップ
 
 ⑦ Next.js実装（続き）
 
-- `components/Sidebar.tsx` → サイドバー
-- `components/AppLayout.tsx` → サイドバー付きレイアウト
-- `app/projects/page.tsx` → プロジェクト一覧画面
-- `components/modals/CreateProjectModal.tsx` → プロジェクト作成モーダル
-- `app/projects/[id]/tasks/page.tsx` → タスク一覧画面
-- `components/modals/CreateTaskModal.tsx` → タスク作成モーダル
 - `app/projects/[id]/tasks/[taskId]/page.tsx` → タスク詳細画面
+  - タスク詳細情報の表示（タイトル・説明・担当者・ステータス・優先度・期限・見積時間・実績時間・差分）
+  - ステータス・優先度のインライン変更
+  - ワークログ一覧表示（日付降順）
 - `components/modals/CreateWorkLogModal.tsx` → ワーク実績入力モーダル
+- `hooks/useWorkLogs.ts` → ワークログ取得カスタムフック
 
 ---
 
