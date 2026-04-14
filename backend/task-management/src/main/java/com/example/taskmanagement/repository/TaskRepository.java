@@ -21,7 +21,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      */
     List<Task> findByProjectId(Long projectId);
 
-    // タスクごとの実績工数合計（work_logsのhoursを集計）
     /**
      * タスクIDに紐付く作業ログの工数合計を取得する<br>
      * 工数合計はwork_logsのhoursを集計して算出する。
@@ -31,4 +30,13 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      */
     @Query("SELECT COALESCE(SUM(w.hours), 0) FROM WorkLog w WHERE w.task.id = :taskId")
     BigDecimal sumActualHoursByTaskId(@Param("taskId") Long taskId);
+
+    /**
+     * 指定ユーザにアサインされたタスク一覧を取得する
+     * 
+     * @param userId ユーザID
+     * @return タスクのリスト
+     */
+    @Query("SELECT t FROM Task t JOIN t.taskAssignments ta WHERE ta.user.id = :userId")
+    List<Task> findByAssignedUserId(@Param("userId") Long userId);
 }

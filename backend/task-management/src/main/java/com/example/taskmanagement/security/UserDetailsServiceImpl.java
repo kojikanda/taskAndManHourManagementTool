@@ -32,10 +32,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
 
-        // Usersテーブルから取得した情報を元に、Spring SecurityのUserDetailsオブジェクトを作成して返す
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getEmail())
-                .password(user.getPasswordHash())
-                .build();
+        // Usersテーブルから取得した情報を元に、Spring SecurityのUserDetailsを作成して返す
+        // ここでは独自のUserDetailsを返している
+        return new UserPrincipal(user);
     }
 }

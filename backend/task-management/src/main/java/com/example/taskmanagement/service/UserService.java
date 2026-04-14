@@ -6,6 +6,7 @@ import com.example.taskmanagement.repository.UserRepository;
 import com.example.taskmanagement.security.JwtUtil;
 
 import lombok.RequiredArgsConstructor;
+import java.util.List;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,18 +56,6 @@ public class UserService {
     }
 
     /**
-     * IDでユーザーを取得する
-     * 
-     * @param id ユーザーID
-     * @return ユーザー
-     */
-    @Transactional(readOnly = true)
-    public User getUserById(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found: " + id));
-    }
-
-    /**
      * ログイン認証を行い、JWTトークンを返す
      * 
      * @param email       メールアドレス
@@ -83,5 +72,27 @@ public class UserService {
 
         String token = jwtUtil.generateToken(email, user.getId());
         return new LoginResponse(token, user.getId(), user.getName(), user.getEmail());
+    }
+
+    /**
+     * IDでユーザーを取得する
+     * 
+     * @param id ユーザーID
+     * @return ユーザー
+     */
+    @Transactional(readOnly = true)
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found: " + id));
+    }
+
+    /**
+     * 全ユーザの一覧を取得する
+     *
+     * @return ユーザのリスト
+     */
+    @Transactional(readOnly = true)
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 }

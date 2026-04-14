@@ -465,6 +465,57 @@ localStorageやCookieからトークンを削除
 
 これだけでログアウトが完結する。
 
+### ◯JWTからトークンにある情報以外を取得する場合
+
+Controllerで、ユーザID(メールアドレスではない)をJWTから取得する場合、以下のやり方で対応する。
+
+#### 1. UserDetailsを継承した独自のUserPrincipalを実装する
+
+ここにユーザID、パスワードハッシュの情報を乗せる。<br>
+(パスワードハッシュは処理の流れ上、次の処理で使う。)
+
+#### 2. UserDetailsServiceImplでUserPrincipalを返す
+
+ここで独自実装したUserPrincipalを返す。<br>
+これにより、Controllerクラスのメソッドのパラメータとして<code>@AuthenticationPrincipal UserPrincipal principal)</code>を指定することで、UserPrincipalの情報を取得することができる。
+
+#### なぜトークンからuserIdを取ってこないか？
+
+##### ①JWTを「二重解析」している
+
+JWTの検証・解析は JwtAuthenticationFilterがすでに行っている。<br>
+コントローラで再度解析するのは、同じことを2回やっていることになる。
+
+```
+リクエスト
+ ↓
+JwtAuthenticationFilter ← ここで「JWTを解析 → userId取得 → SecurityContextに保存」済み
+↓
+ProjectController ← また「JWTを解析 → userId取得」 ← これが無駄
+```
+
+##### ②コントローラが「認証方式の詳細」を知ってしまう
+
+コントローラが知りたいのは「今ログインしているユーザのIDは何か」だけ。<br>
+それが「JWTから来る」「Sessionから来る」「OAuth2から来る」かはコントローラが知る必要はない。
+
+しかし直接取る場合、コントローラはJwtUtilに依存する。<br>
+将来、認証方式をJWT以外に変えたとき、全コントローラを修正することになる。
+
+##### ③NullPointerExceptionのリスクがある
+
+```java
+// Authorization ヘッダーが null だと NPE
+String token = httpRequest.getHeader("Authorization").substring(7);
+```
+
+フィルターに任せておけば、コントローラに届く時点で「認証済みが保証された状態」になっている。
+
+##### ④テストが難しくなる
+
+直接取る場合、ユニットテストで「JWTを生成してリクエストヘッダーに付ける」という手間が必要になる<br>
+@AuthenticationPrincipalならUserPrincipalオブジェクトをモックするだけ。
+
 ## ■秘密鍵について
 
 ### ◯開発環境について
@@ -1430,6 +1481,69 @@ src/contexts/AuthContext.tsxで、ユーザ認証関連情報を取得するた�
 これに対応するため、**コンテキスト**を利用する。<br>
 このコンテキストを持つ共通コンポーネントで子コンポーネントをラップし、また、コンテキストのフックを取得するためのメソッドも別途提供することで、子コンポーネントのどこからでも、ユーザの情報が取れるようにする。
 
+## ■カスタムフック
+
+カスタムフックは値と手続きをまとめたもの。(クラスみたいなもの。)
+
+これを使うと、Viewと手続き(APIリクエスト、DOM操作など)を分けることができ、別の処理で再利用も可能となる。
+
+### ◯カスタムフックでAPIを実行する場合
+
+useEffectでコールする必要がある。
+
+useEffectを利用しないと、以下のように無限ループになる。
+
+```
+・初回レンダリング時に実行
+↓
+・APIレスポンス取得、state更新
+↓
+・state更新により、再レンダリング
+↓
+・再度APIを叩く処理が実行される
+```
+
+### ◯Reactの原則
+
+React の原則：レンダリングは「純粋」であるべき
+
+React では、レンダリング中（関数の本体が実行されている間）は副作用を起こしてはいけないというルールがある。
+
+- 副作用とは：API リクエスト、DOM 操作、タイマー設定など「外の世界」に影響を与える処理
+- useEffect はレンダリングが終わった後に副作用を実行するための仕組み
+
+レンダリング（純粋な計算）→ 画面に反映 → useEffect 実行（副作用OK）
+
+## ■プロジェクト一覧画面のスケルトンUI表示について
+
+```typescript
+<Grid container spacing={2}>
+  {[...Array(4)].map((_, i) => (
+    <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
+      <Skeleton
+        variant="rectangular"
+        height={120}
+        sx={{ borderRadius: 2 }}
+      />
+    </Grid>
+  ))}
+</Grid>
+```
+
+MUIのSkeletonは「読み込み中のプレースホルダー」を表示するコンポーネント。<br>
+デフォルトで灰色のアニメーション（波紋）が付いており、「何かが読み込まれている」ことをユーザに伝える。
+
+### ◯プロパティ
+
+- xs: 12 (Extra-small): スマホなど最小画面（0px〜）の場合、12/12列を使用、つまり画面幅いっぱいに表示（1つ）。
+- sm: 6 (Small): タブレットなど中間画面（600px〜）の場合、6/12列を使用、つまり半分（2つ）並ぶ。
+- md: 4 (Medium): PCなどデスクトップ（900px〜）の場合、4/12列を使用、つまり3等分（3つ）並ぶ。
+- key={i}: Reactが識別するためにkeyの指定が必要。ここではインデックスを指定
+
+- variant="rectangular": 形状：四角形
+- height={120}: 高さ：120px
+- sx={{ borderRadius: 2 }}: 角丸（MUIのスペーシング単位 = 16px）
+
 ## ■コンポーネント
 
 - Box → Divのような多目的コンポーネント
@@ -1439,6 +1553,7 @@ src/contexts/AuthContext.tsxで、ユーザ認証関連情報を取得するた�
 - TextField → テキストフィールド
 - Button → ボタン
 - MuiLink → ハイパーリンク
+- CardActionArea → Cardコンポーネント全体をクリッカブル（クリック可能）にし、ホバー時などにマテリアルデザインのリップル効果や背景色変化を自動で適用するラッパーコンポーネント
 
 ## ■プロパティ
 
@@ -1448,6 +1563,24 @@ src/contexts/AuthContext.tsxで、ユーザ認証関連情報を取得するた�
 - margin="normal" → MUIのテーマに基づいた、適切な上下のmarginを適用する
 - variant="contained" → 背景色付きで影（シャドウ）を持つ、強調された塗りつぶしボタン
 - variant="body2" → 主に補足説明、キャプション、長い本文など、通常の本文（body1）よりも少し小さめのフォントサイズやスタイルを適用するために使用される。
+- multiline → textareaタグを使用するように設定。
+- rows={3} → 最小の高さが3行分になる。
+- exclusive → トグルボタングループ(ToggleButtonGroup)で、選択できるトグルボタンを1つにする指定。
+- container spacing={2} → Gridの親にspacingを指定し、子要素（Grid item）の間に均等な間隔（デフォルトでは16px: 8px✕2）を自動的に設定する
+- gutterBottom → これをtrue（単にgutterBottomと記述）に設定すると、テキスト要素の下部にマージン（margin-bottom）が自動的に追加され、要素間の余白を簡単に確保できる
+
+- List → リスト全体のコンテナ。
+- ListItem → 各リスト要素の基本コンポーネント。
+- ListItemButton → ホバーやクリック時のスタイルが自動適用される、インタラクティブなリストアイテム。
+- ListItemIcon → リスト項目の先頭にアイコンを配置。
+- ListItemText → リスト項目のテキスト（メイン・サブ）を表示。
+- ListItemAvatar → アバターアイコンを配置する際に使用
+
+- Dialog → 画面の前面にポップアップ表示され、ユーザーに重要情報（確認、警告、入力など）を伝えるモーダルウィンドウコンポーネント
+- DialogTitle → タイトル
+- DialogContent → 内容
+- DialogContentText → 説明文
+- DialogActions → ボタン類
 
 ## ■CSS
 
@@ -1455,7 +1588,9 @@ src/contexts/AuthContext.tsxで、ユーザ認証関連情報を取得するた�
 - display: "flex" → Flexboxを使う
 - alignItems: "center" → 縦方向で真ん中に置く
 - justifyContent: "center" → 横方向で真ん中に置く
+- justifyContent: "space-between" → Flexboxコンテナ内の要素を両端揃えし、要素間の余白を均等にするスタイル
 - bgcolor: "grey.100" → 薄いグレー。値は50~900が指定可能。
+- flexShrink: 0 → Flexboxレイアウトにおいて、親要素の幅に対して子要素が収まりきらない（オーバーフローする）場合に、その子要素をどれだけ縮小させるか（縮む比率）を指定するプロパティ
 
 ---
 
@@ -1613,3 +1748,60 @@ Next.jsからSpring Boot APIに接続してください。
 - 工数入力UI
 - 合計時間表示
 - ステータス管理（TODO / DOING / DONE）
+
+# TypeScriptのファイルを開いていると、CPUを異常に使ってしまう場合
+
+TypeScriptのファイルを開いていると、Code Helper (Plugin)というプロセスが、CPUとメモリを異常に使ってしまう減少が発生した。<br>
+以下の手順で修正した。
+
+## ■原因
+
+tsconfig.jsonの設定が問題。
+
+```json
+"include": [
+  "**/*.ts",    // ← .next/ 以下も全部対象になる
+  "**/*.tsx",
+  ".next/types/**/*.ts",
+  ".next/dev/types/**/*.ts",
+  ...
+],
+"exclude": ["node_modules"]  // ← node_modules しか除外していない
+```
+
+.next/ は287MBあり、Next.jsのビルド成果物（JSバンドルのソースマップなど大量のファイル）が入っている。<br>
+\\\*_/_.tsのパターンが .next/以下のファイルも全部拾ってしまうため、TypeScript 言語サービスが延々と解析し続けている。
+
+## ■修正方法
+
+2つのファイルを修正します。
+
+### 1. frontend/tsconfig.json — .next を exclude に追加
+
+```json
+"exclude": ["node_modules", ".next"] // ".next"を追加
+```
+
+.next/types/\*_/_.ts などは include に明示されているので、exclude に .nextを追加しても型定義は引き続き読み込まれる。<br>
+（include の明示指定は exclude より優先される。）
+
+### 2. .vscode/settings.json — ファイル監視・検索からも除外
+
+```json
+{
+  // 下記の設定を追加
+  "files.watcherExclude": {
+    "**/frontend/.next/**": true,
+    "**/frontend/node_modules/**": true
+  },
+  "search.exclude": {
+    "**/frontend/.next": true,
+    "**/frontend/node_modules": true
+  }
+}
+```
+
+files.watcherExclude は VSCode のファイル監視デーモン（inotify /FSEvents）が監視するパスを除外する設定。<br>
+これが設定されていないと、.next/内のファイルが変わるたびに言語サービスが再解析を走らせる。
+
+ファイルを修正後、VSCodeを再起動する。

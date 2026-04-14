@@ -68,7 +68,10 @@ export default function LoginPage() {
     >
       <Container maxWidth="xs">
         <Paper elevation={3} sx={{ p: 4 }}>
-          <Typography variant="h5" fontWeight="bold" textalign="center" mb={3}>
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: "bold", textAlign: "center", mb: 3 }}
+          >
             タスク工数管理ツール
           </Typography>
 
@@ -107,7 +110,7 @@ export default function LoginPage() {
             </Button>
           </Box>
 
-          <Typography variant="body2" textalign="center" mt={2}>
+          <Typography variant="body2" sx={{ textAlign: "center", mt: 2 }}>
             アカウントをお持ちでない方は{" "}
             <MuiLink component={Link} href="/register">
               こちら

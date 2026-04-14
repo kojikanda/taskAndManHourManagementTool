@@ -161,6 +161,13 @@ UIはReactのMUIを利用する。
 - ログイン画面にユーザ登録画面のリンクを置いておき、ユーザ登録画面に遷移できる。
 - ログインしたら、プロジェクト一覧画面を表示する。
   - プロジェクトはカードで表示する。
+  - プロジェクト一覧画面は、初期表示時、自分がアサインされているタスクが存在するプロジェクトのみを表示する。
+  - プロジェクト一覧画面の上部にフィルタを追加し、以下の3つでフィルタリングできるようにする。
+    - 自担当タスクあり → 自分がアサインされているタスクが存在するプロジェクトのみを表示。初期表示。
+    - 管理対象 → 自分がオーナーのプロジェクトのみを表示
+    - 全て → 全てのプロジェクトを表示
+  - プロジェクト一覧画面のフィルタは以下の構成とする。
+    - セグメント(トグルボタン) → 自担当タスクあり, 管理対象, 全ての3つのフィルタリングを選択できるようにする。複数選択不可。選択しているときは、選択していることが分かる表示にする。
 - プロジェクト一連画面から、プロジェクトを追加するためのプロジェクト作成フォームが表示できる。
 - プロジェクト作成フォームからプロジェクトを登録することができる。
 - プロジェクト一覧画面からプロジェクトのカードをクリックすると、タスク一覧画面が表示される。
@@ -445,14 +452,15 @@ src/
 ### 次のステップ
 
 ⑦ Next.js実装（続き）
-  - `components/Sidebar.tsx` → サイドバー
-  - `components/AppLayout.tsx` → サイドバー付きレイアウト
-  - `app/projects/page.tsx` → プロジェクト一覧画面
-  - `components/modals/CreateProjectModal.tsx` → プロジェクト作成モーダル
-  - `app/projects/[id]/tasks/page.tsx` → タスク一覧画面
-  - `components/modals/CreateTaskModal.tsx` → タスク作成モーダル
-  - `app/projects/[id]/tasks/[taskId]/page.tsx` → タスク詳細画面
-  - `components/modals/CreateWorkLogModal.tsx` → ワーク実績入力モーダル
+
+- `components/Sidebar.tsx` → サイドバー
+- `components/AppLayout.tsx` → サイドバー付きレイアウト
+- `app/projects/page.tsx` → プロジェクト一覧画面
+- `components/modals/CreateProjectModal.tsx` → プロジェクト作成モーダル
+- `app/projects/[id]/tasks/page.tsx` → タスク一覧画面
+- `components/modals/CreateTaskModal.tsx` → タスク作成モーダル
+- `app/projects/[id]/tasks/[taskId]/page.tsx` → タスク詳細画面
+- `components/modals/CreateWorkLogModal.tsx` → ワーク実績入力モーダル
 
 ---
 

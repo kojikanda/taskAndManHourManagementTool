@@ -71,10 +71,13 @@ export default function RegisterPage() {
               textalign: "center",
             }}
           >
-            <Typography variant="body2" mt={0.5} sx={{ color: "white" }}>
+            <Typography variant="body2" sx={{ color: "white", mt: 0.5 }}>
               タスク工数管理ツール
             </Typography>
-            <Typography variant="h5" fontWeight="bold" sx={{ color: "white" }}>
+            <Typography
+              variant="h5"
+              sx={{ color: "white", fontWeight: "bold" }}
+            >
               アカウント作成
             </Typography>
           </Box>
@@ -130,9 +133,7 @@ export default function RegisterPage() {
 
             <Typography
               variant="body2"
-              textalign="center"
-              mt={2}
-              color="text.secondary"
+              sx={{ textalign: "center", mt: 2, color: "text.secondary" }}
             >
               すでにアカウントをお持ちの方は{" "}
               <MuiLink component={Link} href="/">

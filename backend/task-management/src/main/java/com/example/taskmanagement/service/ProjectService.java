@@ -70,4 +70,25 @@ public class ProjectService {
         return projectRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Project not found: " + id));
     }
+
+    /**
+     * 全プロジェクトを取得する
+     *
+     * @return プロジェクトのリスト
+     */
+    @Transactional(readOnly = true)
+    public List<Project> getAllProjects() {
+        return projectRepository.findAll();
+    }
+
+    /**
+     * ユーザがアサインされているタスクが存在するプロジェクト一覧を取得する
+     * 
+     * @param userId ユーザID
+     * @return プロジェクトのリスト
+     */
+    @Transactional(readOnly = true)
+    public List<Project> getProjectsByAssignedUserId(Long userId) {
+        return projectRepository.findByAssignedUserId(userId);
+    }
 }

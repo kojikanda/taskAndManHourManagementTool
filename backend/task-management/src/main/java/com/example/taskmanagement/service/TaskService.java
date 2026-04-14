@@ -135,6 +135,30 @@ public class TaskService {
     }
 
     /**
+     * タスクIDでタスクを取得する
+     * 
+     * @param id タスクID
+     * @return タスクレスポンスDTO
+     */
+    @Transactional(readOnly = true)
+    public TaskResponse getTaskById(Long id) {
+        return TaskResponse.from(findTaskById(id));
+    }
+
+    /**
+     * ユーザIDでアサインされたタスク一覧を取得する
+     * 
+     * @param userId ユーザID
+     * @return タスクレスポンスDTOのリスト
+     */
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getTasksByAssignedUserId(Long userId) {
+        return taskRepository.findByAssignedUserId(userId).stream()
+                .map(TaskResponse::from)
+                .toList();
+    }
+
+    /**
      * タスクIDで時間集計レスポンスDTOを取得する
      * 
      * @param taskId タスクID
@@ -151,17 +175,6 @@ public class TaskService {
         BigDecimal diff = estimated.subtract(actual);
 
         return new HoursSummaryResponse(taskId, estimated, actual, diff);
-    }
-
-    /**
-     * タスクIDでタスクを取得する
-     * 
-     * @param id タスクID
-     * @return タスクエンティティ
-     */
-    private Task findTaskById(Long id) {
-        return taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found: " + id));
     }
 
     /**
@@ -212,5 +225,16 @@ public class TaskService {
         return taskAssignmentRepository.findByTaskId(taskId).stream()
                 .map(a -> a.getUser().getId())
                 .toList();
+    }
+
+    /**
+     * タスクIDでタスクを取得する
+     * 
+     * @param id タスクID
+     * @return タスクエンティティ
+     */
+    private Task findTaskById(Long id) {
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found: " + id));
     }
 }

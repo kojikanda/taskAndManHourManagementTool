@@ -20,7 +20,7 @@ public class TaskController {
     private final TaskService taskService;
 
     /**
-     * タスク一覧取得
+     * プロジェクトID指定によるタスク一覧取得
      * 
      * @param projectId プロジェクトID
      * @return タスクのレスポンスDTOのリスト
@@ -28,26 +28,6 @@ public class TaskController {
     @GetMapping("/projects/{projectId}/tasks")
     public ResponseEntity<List<TaskResponse>> getTasksByProject(@PathVariable Long projectId) {
         return ResponseEntity.ok(taskService.getTasksByProjectId(projectId));
-    }
-
-    /**
-     * タスク作成
-     * 
-     * @param request タスク作成リクエスト
-     * @return 作成されたタスクのレスポンスDTO
-     */
-    @PostMapping("/tasks")
-    public ResponseEntity<TaskResponse> createTask(@RequestBody TaskRequest request) {
-        TaskResponse task = taskService.createTask(
-                request.getProjectId(),
-                request.getTitle(),
-                request.getDescription(),
-                request.getAssignedUserIds(),
-                request.getStatus(),
-                request.getPriority(),
-                request.getDueDate(),
-                request.getEstimatedHours());
-        return ResponseEntity.ok(task);
     }
 
     /**
@@ -63,6 +43,48 @@ public class TaskController {
                 id,
                 request.getTitle(),
                 request.getDescription(),
+                request.getStatus(),
+                request.getPriority(),
+                request.getDueDate(),
+                request.getEstimatedHours());
+        return ResponseEntity.ok(task);
+    }
+
+    /**
+     * タスクID指定によるタスク取得
+     * 
+     * @param taskId タスクID
+     * @return タスクレスポンスDTO
+     */
+    @GetMapping("/tasks/{taskId}")
+    public ResponseEntity<TaskResponse> getTaskById(@PathVariable Long taskId) {
+        return ResponseEntity.ok(taskService.getTaskById(taskId));
+    }
+
+    /**
+     * ユーザにアサインされたタスク一覧取得
+     * 
+     * @param userId ユーザID
+     * @return タスクレスポンスDTOのリスト
+     */
+    @GetMapping("/tasks/assigned/{userId}")
+    public ResponseEntity<List<TaskResponse>> getTasksByAssignedUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(taskService.getTasksByAssignedUserId(userId));
+    }
+
+    /**
+     * タスク作成
+     * 
+     * @param request タスク作成リクエスト
+     * @return 作成されたタスクのレスポンスDTO
+     */
+    @PostMapping("/tasks")
+    public ResponseEntity<TaskResponse> createTask(@RequestBody TaskRequest request) {
+        TaskResponse task = taskService.createTask(
+                request.getProjectId(),
+                request.getTitle(),
+                request.getDescription(),
+                request.getAssignedUserIds(),
                 request.getStatus(),
                 request.getPriority(),
                 request.getDueDate(),
