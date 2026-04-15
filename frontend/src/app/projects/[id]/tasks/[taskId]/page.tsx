@@ -49,8 +49,7 @@ export default function TaskDetailPage() {
   const router = useRouter();
   const { enqueueSnackbar } = useSnackbar();
 
-  // URLからプロジェクトIDとタスクIDを取り出す
-  const projectId = Number(params.id);
+  // URLからタスクIDを取り出す
   const taskId = Number(params.taskId);
 
   // タスク詳細のローカルstate
@@ -149,7 +148,7 @@ export default function TaskDetailPage() {
       {/* 戻るボタン */}
       <Button
         startIcon={<ArrowBackIcon />}
-        onClick={() => router.push(`/projects/${projectId}/tasks`)}
+        onClick={() => router.back()}
         sx={{ mb: 2 }}
       >
         タスク一覧に戻る

@@ -17,6 +17,8 @@ export default function MyTasksPage() {
         loading={loading}
         refetch={refetch}
         // createProjectId を渡さない → タスク作成ボタンなし
+        // lockSelfFilter指定で自担当タスクからの遷移であることを示す
+        lockSelfFilter
       />
     </AppLayout>
   );

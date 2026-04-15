@@ -27,9 +27,9 @@ import ClearIcon from "@mui/icons-material/Clear";
 import PersonIcon from "@mui/icons-material/Person";
 import { Avatar, Tooltip } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { Dayjs } from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useSnackbar } from "notistack";
 import CreateTaskModal from "@/components/modals/CreateTaskModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,6 +48,7 @@ import {
   formatDate,
 } from "@/lib/taskStyles";
 import { updateTaskField } from "@/lib/taskApi";
+import { loadSavedState } from "@/lib/commonApi";
 
 // ソート対象のカラム
 type SortField =
@@ -117,6 +118,7 @@ type TaskListViewProps = {
   loading: boolean;
   refetch: () => void;
   createProjectId?: number; // 指定あり → タスク作成ボタンを表示
+  lockSelfFilter?: boolean;
 };
 
 /**
@@ -134,8 +136,11 @@ export default function TaskListView({
   loading,
   refetch,
   createProjectId,
+  lockSelfFilter = false,
 }: TaskListViewProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const storageKey = `taskListState:${pathname}`;
   const { user } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -145,28 +150,79 @@ export default function TaskListView({
     api.get<User[]>("/users").then((res) => setAllUsers(res.data));
   }, []);
 
+  /*
+   * 以下、ソート・フィルタリングの情報はlazy initializerとし、
+   * コンポーネントマウント時に1度だけsessionStorageから情報を読み込むようにする。
+   */
   // ソート対象のカラム
-  const [sortField, setSortField] = useState<SortField>("dueDate");
+  const [sortField, setSortField] = useState<SortField>(
+    () => loadSavedState(storageKey)?.sortField ?? "dueDate",
+  );
   // ソート順(デフォルト: 昇順)
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">(
+    () => loadSavedState(storageKey)?.sortDir ?? "asc",
+  );
 
   // フィルタリングで選択したユーザのID
-  const [filterUserIds, setFilterUserIds] = useState<number[]>(
-    user ? [user.userId] : [],
-  );
+  const [filterUserIds, setFilterUserIds] = useState<number[]>(() => {
+    const saved = loadSavedState(storageKey)?.filterUserIds;
+    // 保存済みがあればそれを使う。なければデフォルト（自分）
+    const base = saved ?? (user ? [user.userId] : []);
+    // lockSelfFilterのとき、自分が必ず含まれるようにする
+    if (lockSelfFilter && user && !base.includes(user.userId)) {
+      return [...base, user.userId];
+    }
+    return base;
+  });
   // フィルタリングで選択したステータス
-  const [filterStatuses, setFilterStatuses] = useState<TaskStatus[]>([
-    "TODO",
-    "DOING",
-  ]);
+  const [filterStatuses, setFilterStatuses] = useState<TaskStatus[]>(
+    () => loadSavedState(storageKey)?.filterStatuses ?? ["TODO", "DOING"],
+  );
   // フィルタリングで選択した優先度
-  const [filterPriorities, setFilterPriorities] = useState<TaskPriority[]>([]);
+  const [filterPriorities, setFilterPriorities] = useState<TaskPriority[]>(
+    () => loadSavedState(storageKey)?.filterPriorities ?? [],
+  );
   // フィルタリングで選択した開始日付
   const [filterDueDateFrom, setFilterDueDateFrom] = useState<Dayjs | null>(
-    null,
+    () => {
+      const saved = loadSavedState(storageKey)?.filterDueDateFrom;
+      return saved ? dayjs(saved) : null;
+    },
   );
   // フィルタリングで選択した終了日付
-  const [filterDueDateTo, setFilterDueDateTo] = useState<Dayjs | null>(null);
+  const [filterDueDateTo, setFilterDueDateTo] = useState<Dayjs | null>(() => {
+    const saved = loadSavedState(storageKey)?.filterDueDateTo;
+    return saved ? dayjs(saved) : null;
+  });
+
+  // フィルタ・ソート状態が変わるたびに sessionStorage に保存
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          sortField,
+          sortDir,
+          filterUserIds,
+          filterStatuses,
+          filterPriorities,
+          filterDueDateFrom: filterDueDateFrom?.format("YYYY-MM-DD") ?? null,
+          filterDueDateTo: filterDueDateTo?.format("YYYY-MM-DD") ?? null,
+        }),
+      );
+    } catch {
+      // ignore
+    }
+  }, [
+    storageKey,
+    sortField,
+    sortDir,
+    filterUserIds,
+    filterStatuses,
+    filterPriorities,
+    filterDueDateFrom,
+    filterDueDateTo,
+  ]);
 
   // ステータスのバッジがクリックされたときのドロップダウン表示に使う情報
   const [statusMenu, setStatusMenu] = useState<{
@@ -262,18 +318,19 @@ export default function TaskListView({
             : "タスクの優先度を更新しました",
           { variant: "success" },
         );
-        await refetch();
       }
     } catch {
       enqueueSnackbar("更新に失敗しました", { variant: "error" });
     } finally {
       closeMenu();
+      await refetch();
     }
   };
 
   // クリアボタン押下時のイベントハンドラ
   const handleClearFilters = () => {
-    setFilterUserIds([]);
+    // 自タスク一覧から遷移したときは、フィルタ条件に自分を残す。それ以外はクリア。
+    setFilterUserIds(lockSelfFilter && user ? [user.userId] : []);
     setFilterStatuses([]);
     setFilterPriorities([]);
     setFilterDueDateFrom(null);
@@ -406,7 +463,13 @@ export default function TaskListView({
             <Select
               multiple
               value={filterUserIds}
-              onChange={(e) => setFilterUserIds(e.target.value as number[])}
+              onChange={(e) => {
+                const newIds = e.target.value as number[];
+                // lockSelfFilter のとき、自分の除外を無視する
+                if (lockSelfFilter && user && !newIds.includes(user.userId))
+                  return;
+                setFilterUserIds(newIds);
+              }}
               input={<OutlinedInput label="担当者" />}
               renderValue={(selected) =>
                 (selected as number[])
@@ -417,17 +480,24 @@ export default function TaskListView({
                   )
                   .join(", ")
               }
+              disabled={lockSelfFilter}
             >
-              {allUsers.map((u) => (
-                <MenuItem key={u.id} value={u.id}>
-                  <Checkbox checked={filterUserIds.includes(u.id)} />
-                  <ListItemText
-                    primary={
-                      u.id === user?.userId ? `${u.name}（自分）` : u.name
-                    }
-                  />
-                </MenuItem>
-              ))}
+              {allUsers.map((u) => {
+                const isLockedSelf = lockSelfFilter && u.id === user?.userId;
+                return (
+                  <MenuItem key={u.id} value={u.id} disabled={isLockedSelf}>
+                    <Checkbox
+                      checked={filterUserIds.includes(u.id)}
+                      disabled={isLockedSelf}
+                    />
+                    <ListItemText
+                      primary={
+                        u.id === user?.userId ? `${u.name}（自分）` : u.name
+                      }
+                    />
+                  </MenuItem>
+                );
+              })}
             </Select>
           </FormControl>
 
