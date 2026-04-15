@@ -20,14 +20,23 @@ public class TaskController {
     private final TaskService taskService;
 
     /**
-     * プロジェクトID指定によるタスク一覧取得
+     * タスク作成
      * 
-     * @param projectId プロジェクトID
-     * @return タスクのレスポンスDTOのリスト
+     * @param request タスク作成リクエスト
+     * @return 作成されたタスクのレスポンスDTO
      */
-    @GetMapping("/projects/{projectId}/tasks")
-    public ResponseEntity<List<TaskResponse>> getTasksByProject(@PathVariable Long projectId) {
-        return ResponseEntity.ok(taskService.getTasksByProjectId(projectId));
+    @PostMapping("/tasks")
+    public ResponseEntity<TaskResponse> createTask(@RequestBody TaskRequest request) {
+        TaskResponse task = taskService.createTask(
+                request.getProjectId(),
+                request.getTitle(),
+                request.getDescription(),
+                request.getAssignedUserIds(),
+                request.getStatus(),
+                request.getPriority(),
+                request.getDueDate(),
+                request.getEstimatedHours());
+        return ResponseEntity.ok(task);
     }
 
     /**
@@ -51,6 +60,17 @@ public class TaskController {
     }
 
     /**
+     * プロジェクトID指定によるタスク一覧取得
+     * 
+     * @param projectId プロジェクトID
+     * @return タスクのレスポンスDTOのリスト
+     */
+    @GetMapping("/projects/{projectId}/tasks")
+    public ResponseEntity<List<TaskResponse>> getTasksByProject(@PathVariable Long projectId) {
+        return ResponseEntity.ok(taskService.getTasksByProjectId(projectId));
+    }
+
+    /**
      * タスクID指定によるタスク取得
      * 
      * @param taskId タスクID
@@ -70,26 +90,6 @@ public class TaskController {
     @GetMapping("/tasks/assigned/{userId}")
     public ResponseEntity<List<TaskResponse>> getTasksByAssignedUserId(@PathVariable Long userId) {
         return ResponseEntity.ok(taskService.getTasksByAssignedUserId(userId));
-    }
-
-    /**
-     * タスク作成
-     * 
-     * @param request タスク作成リクエスト
-     * @return 作成されたタスクのレスポンスDTO
-     */
-    @PostMapping("/tasks")
-    public ResponseEntity<TaskResponse> createTask(@RequestBody TaskRequest request) {
-        TaskResponse task = taskService.createTask(
-                request.getProjectId(),
-                request.getTitle(),
-                request.getDescription(),
-                request.getAssignedUserIds(),
-                request.getStatus(),
-                request.getPriority(),
-                request.getDueDate(),
-                request.getEstimatedHours());
-        return ResponseEntity.ok(task);
     }
 
     /**

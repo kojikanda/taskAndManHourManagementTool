@@ -37,7 +37,7 @@ export default function CreateProjectModal({
     formState: { errors, isSubmitting },
   } = useForm<CreateProjectRequest>();
 
-  // 登録ボタン押下イベントハンドラ
+  // 登録ボタン押下時のイベントハンドラ
   const onSubmit = async (data: CreateProjectRequest) => {
     try {
       await api.post("/projects", data);
@@ -50,7 +50,7 @@ export default function CreateProjectModal({
     }
   };
 
-  // キャンセルボタン押下イベントハンドラ
+  // キャンセルボタン押下時のイベントハンドラ
   const handleClose = () => {
     reset();
     onClose();

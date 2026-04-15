@@ -11,10 +11,10 @@ import java.util.List;
 public interface WorkLogRepository extends JpaRepository<WorkLog, Long> {
 
     /**
-     * タスクIDに紐付くワークログ一覧を取得する
-     *
+     * タスクIDに紐付くワークログ一覧を作業日の降順で取得する
+     * 
      * @param taskId タスクID
-     * @return ワークログのリスト
+     * @return ワークログのリスト（作業日降順）
      */
-    List<WorkLog> findByTaskId(Long taskId);
+    List<WorkLog> findByTaskIdOrderByWorkDateDesc(Long taskId);
 }

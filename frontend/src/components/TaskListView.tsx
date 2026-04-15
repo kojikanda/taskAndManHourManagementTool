@@ -41,27 +41,13 @@ import {
   User,
   UpdateTaskRequest,
 } from "@/types";
-
-// ===== 定数・ヘルパー =====
-
-// ステータスのスタイル
-const STATUS_STYLE: Record<TaskStatus, { bgcolor: string; color: string }> = {
-  TODO: { bgcolor: "#ECEFF1", color: "#546E7A" },
-  DOING: { bgcolor: "#E3F2FD", color: "#1565C0" },
-  DONE: { bgcolor: "#E8F5E9", color: "#2E7D32" },
-};
-
-// 優先度のスタイル
-const PRIORITY_STYLE: Record<TaskPriority, { bgcolor: string; color: string }> =
-  {
-    HIGH: { bgcolor: "#FFEBEE", color: "#C62828" },
-    MEDIUM: { bgcolor: "#FFF3E0", color: "#E65100" },
-    LOW: { bgcolor: "#F5F5F5", color: "#757575" },
-  };
-
-// アバターの色（ユーザIDで色を固定）
-const AVATAR_COLORS = ["#1976d2", "#388e3c", "#f57c00", "#7b1fa2", "#c62828"];
-const getAvatarColor = (id: number) => AVATAR_COLORS[id % AVATAR_COLORS.length];
+import {
+  STATUS_STYLE,
+  PRIORITY_STYLE,
+  getAvatarColor,
+  formatDate,
+} from "@/lib/taskStyles";
+import { updateTaskField } from "@/lib/taskApi";
 
 // ソート対象のカラム
 type SortField =
@@ -85,12 +71,6 @@ const SORT_LABELS: Record<SortField, string> = {
   estimatedHours: "見積時間",
   updatedAt: "更新日時",
 };
-
-// 日付文字列を表示する形式に変換して返すメソッド
-function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return "-";
-  return dateStr.substring(0, 10).replace(/-/g, "/");
-}
 
 // タスクの各項目の比較メソッド
 // ソートで使用する
@@ -130,8 +110,7 @@ function compareTaskValues(a: Task, b: Task, field: SortField): number {
   }
 }
 
-// ===== Props =====
-
+// Props
 type TaskListViewProps = {
   title: string;
   tasks: Task[];
@@ -273,39 +252,23 @@ export default function TaskListView({
     closeMenu: () => void,
   ) => {
     const task = tasks.find((t) => t.id === taskId)!;
-
-    // 前回値と同じ場合はAPIを叩かずにメニューを閉じる
-    const isSameValue =
-      (updates.status !== undefined && updates.status === task.status) ||
-      (updates.priority !== undefined && updates.priority === task.priority);
-
-    if (isSameValue) {
+    try {
+      // Tasksテーブルを更新
+      const updated = await updateTaskField(task, updates);
+      if (updated !== null) {
+        enqueueSnackbar(
+          updates.status !== undefined
+            ? "タスクのステータスを更新しました"
+            : "タスクの優先度を更新しました",
+          { variant: "success" },
+        );
+        await refetch();
+      }
+    } catch {
+      enqueueSnackbar("更新に失敗しました", { variant: "error" });
+    } finally {
       closeMenu();
-      return;
     }
-
-    await api.put<void>(`/tasks/${taskId}`, {
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      priority: task.priority,
-      dueDate: task.dueDate,
-      estimatedHours: task.estimatedHours,
-      // 変更するフィールドだけ上書き
-      ...updates,
-    } satisfies UpdateTaskRequest);
-
-    // 更新したフィールドに応じてトーストを出し分ける
-    if (updates.status !== undefined) {
-      enqueueSnackbar("タスクのステータスを更新しました", {
-        variant: "success",
-      });
-    } else {
-      enqueueSnackbar("タスクの優先度を更新しました", { variant: "success" });
-    }
-
-    closeMenu();
-    await refetch();
   };
 
   // クリアボタン押下時のイベントハンドラ

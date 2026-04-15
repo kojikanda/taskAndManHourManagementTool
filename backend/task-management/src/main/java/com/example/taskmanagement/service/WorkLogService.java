@@ -72,7 +72,7 @@ public class WorkLogService {
          */
         @Transactional(readOnly = true)
         public List<WorkLogResponse> getWorkLogsByTaskId(Long taskId) {
-                return workLogRepository.findByTaskId(taskId).stream()
+                return workLogRepository.findByTaskIdOrderByWorkDateDesc(taskId).stream()
                                 .map(WorkLogResponse::from)
                                 .toList();
         }

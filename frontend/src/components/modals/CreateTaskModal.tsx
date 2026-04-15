@@ -65,6 +65,7 @@ export default function CreateTaskModal({
     }
   }, [open]);
 
+  // 登録ボタン押下時のイベントハンドラ
   const onSubmit = async (data: CreateTaskRequest) => {
     try {
       await api.post("/tasks", { ...data, projectId });
@@ -77,6 +78,7 @@ export default function CreateTaskModal({
     }
   };
 
+  // キャンセルボタン押下時のイベントハンドラ
   const handleClose = () => {
     reset();
     onClose();

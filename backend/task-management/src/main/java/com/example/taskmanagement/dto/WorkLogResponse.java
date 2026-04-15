@@ -29,6 +29,11 @@ public class WorkLogResponse {
     private final Long userId;
 
     /**
+     * ユーザー名
+     */
+    private final String userName;
+
+    /**
      * ワーク日付
      */
     private final LocalDate workDate;
@@ -57,6 +62,7 @@ public class WorkLogResponse {
         this.id = workLog.getId();
         this.taskId = workLog.getTask().getId();
         this.userId = workLog.getUser().getId();
+        this.userName = workLog.getUser().getName();
         this.workDate = workLog.getWorkDate();
         this.hours = workLog.getHours();
         this.memo = workLog.getMemo();
