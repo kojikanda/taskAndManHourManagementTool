@@ -86,7 +86,11 @@ export default function Sidebar() {
           />
         </ListItemButton>
 
-        <ListItemButton component={Link} href="/tasks/my" sx={listItemSx}>
+        <ListItemButton
+          component={Link}
+          href="/tasks/my?fresh=1"
+          sx={listItemSx}
+        >
           <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
             <AssignmentIndIcon fontSize="small" />
           </ListItemIcon>

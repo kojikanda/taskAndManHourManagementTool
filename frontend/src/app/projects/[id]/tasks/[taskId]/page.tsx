@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Chip,
   CircularProgress,
   Divider,
@@ -30,7 +31,13 @@ import AppLayout from "@/components/AppLayout";
 import CreateWorkLogModal from "@/components/modals/CreateWorkLogModal";
 import { useWorkLogs } from "@/hooks/useWorkLogs";
 import api from "@/lib/api";
-import { Task, TaskStatus, TaskPriority, UpdateTaskRequest } from "@/types";
+import {
+  Task,
+  TaskStatus,
+  TaskPriority,
+  UpdateTaskRequest,
+  User,
+} from "@/types";
 import { useEffect } from "react";
 import {
   STATUS_STYLE,
@@ -79,6 +86,23 @@ export default function TaskDetailPage() {
   // 優先度のドロップダウン表示が開いているか
   const [priorityMenuOpen, setPriorityMenuOpen] = useState(false);
 
+  // 全ユーザ一覧
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+
+  // 担当者ドロップダウンのanchor
+  const [assignmentAnchor, setAssignmentAnchor] = useState<HTMLElement | null>(
+    null,
+  );
+  // 担当者ドロップダウンが開いているか
+  const [assignmentMenuOpen, setAssignmentMenuOpen] = useState(false);
+  // 担当者更新中（連続APIコール防止）
+  const [assignmentUpdating, setAssignmentUpdating] = useState(false);
+
+  // 全ユーザ取得（担当者ドロップダウン用）
+  useEffect(() => {
+    api.get<User[]>("/users").then((res) => setAllUsers(res.data));
+  }, []);
+
   // タスク詳細取得
   useEffect(() => {
     api
@@ -112,6 +136,32 @@ export default function TaskDetailPage() {
       enqueueSnackbar("更新に失敗しました", { variant: "error" });
     } finally {
       closeMenu();
+    }
+  };
+
+  // 担当者ドロップダウンで選択・解除されたときのハンドラ
+  const handleToggleAssignment = async (userId: number) => {
+    if (!task || assignmentUpdating) return;
+    const isAssigned = task.assignedUsers.some((u) => u.id === userId);
+    setAssignmentUpdating(true);
+    try {
+      if (isAssigned) {
+        await api.delete(`/tasks/${taskId}/assignments/${userId}`);
+      } else {
+        await api.post(`/tasks/${taskId}/assignments/${userId}`);
+      }
+      // APIで最新のタスク情報を取得して反映
+      const res = await api.get<Task>(`/tasks/${taskId}`);
+      setTask(res.data);
+
+      enqueueSnackbar(
+        isAssigned ? "担当者を削除しました" : "担当者を追加しました",
+        { variant: "success" },
+      );
+    } catch {
+      enqueueSnackbar("担当者の更新に失敗しました", { variant: "error" });
+    } finally {
+      setAssignmentUpdating(false);
     }
   };
 
@@ -229,10 +279,28 @@ export default function TaskDetailPage() {
                 担当者
               </Typography>
               <Box
-                sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}
+                onClick={(e) => {
+                  setAssignmentAnchor(e.currentTarget);
+                  setAssignmentMenuOpen(true);
+                }}
+                sx={{
+                  display: "flex",
+                  gap: 0.5,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  mt: 0.5,
+                  cursor: "pointer",
+                  borderRadius: 1,
+                  px: 1,
+                  py: 0.5,
+                  mx: -1,
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
               >
                 {task.assignedUsers.length === 0 ? (
-                  <Typography variant="body2">-</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    クリックして担当者を設定
+                  </Typography>
                 ) : (
                   task.assignedUsers.map((u) => (
                     <Tooltip key={u.id} title={u.name}>
@@ -423,6 +491,51 @@ export default function TaskDetailPage() {
             />
           </MenuItem>
         ))}
+      </Menu>
+
+      {/* 担当者変更ドロップダウン */}
+      <Menu
+        anchorEl={assignmentAnchor}
+        open={assignmentMenuOpen}
+        onClose={() => setAssignmentMenuOpen(false)}
+        slotProps={{
+          transition: { onExited: () => setAssignmentAnchor(null) },
+        }}
+      >
+        {allUsers.map((u) => {
+          const isAssigned = task.assignedUsers.some((a) => a.id === u.id);
+          return (
+            <MenuItem
+              key={u.id}
+              onClick={() => handleToggleAssignment(u.id)}
+              disabled={assignmentUpdating}
+              dense
+            >
+              <Checkbox
+                checked={isAssigned}
+                size="small"
+                sx={{ mr: 1, p: 0 }}
+              />
+              <Avatar
+                sx={{
+                  width: 22,
+                  height: 22,
+                  fontSize: 10,
+                  bgcolor: getAvatarColor(u.id),
+                  mr: 1,
+                }}
+              >
+                <PersonIcon sx={{ fontSize: 13 }} />
+              </Avatar>
+              <Typography variant="body2">{u.name}</Typography>
+            </MenuItem>
+          );
+        })}
+        {assignmentUpdating && (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 1 }}>
+            <CircularProgress size={16} />
+          </Box>
+        )}
       </Menu>
 
       {/* ワーク実績入力モーダル */}

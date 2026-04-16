@@ -37,7 +37,7 @@ import { Avatar, Tooltip } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { useState, useEffect, useMemo } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useSnackbar } from "notistack";
 import CreateTaskModal from "@/components/modals/CreateTaskModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -152,6 +152,10 @@ export default function TaskListView({
   const { user } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
 
+  // 初期表示かどうかをクエリで判断する
+  const searchParams = useSearchParams();
+  const isFresh = searchParams.get("fresh") === "1";
+
   // 全てのユーザ
   const [allUsers, setAllUsers] = useState<User[]>([]);
   useEffect(() => {
@@ -159,49 +163,65 @@ export default function TaskListView({
   }, []);
 
   /*
-   * 以下、ソート・フィルタリングの情報はlazy initializerとし、
+   * 以下、ソート・フィルタリングの情報は、初期表示以外では、
    * コンポーネントマウント時に1度だけsessionStorageから情報を読み込むようにする。
    */
   // ソート対象のカラム
-  const [sortField, setSortField] = useState<SortField>(
-    () => loadSavedState(storageKey)?.sortField ?? "dueDate",
+  const [sortField, setSortField] = useState<SortField>(() =>
+    isFresh ? "dueDate" : (loadSavedState(storageKey)?.sortField ?? "dueDate"),
   );
   // ソート順(デフォルト: 昇順)
-  const [sortDir, setSortDir] = useState<"asc" | "desc">(
-    () => loadSavedState(storageKey)?.sortDir ?? "asc",
+  const [sortDir, setSortDir] = useState<"asc" | "desc">(() =>
+    isFresh ? "asc" : (loadSavedState(storageKey)?.sortDir ?? "asc"),
   );
 
   // フィルタリングで選択したユーザのID
   const [filterUserIds, setFilterUserIds] = useState<number[]>(() => {
+    if (isFresh) return user ? [user.userId] : [];
     const saved = loadSavedState(storageKey)?.filterUserIds;
-    // 保存済みがあればそれを使う。なければデフォルト（自分）
     const base = saved ?? (user ? [user.userId] : []);
-    // lockSelfFilterのとき、自分が必ず含まれるようにする
     if (lockSelfFilter && user && !base.includes(user.userId)) {
       return [...base, user.userId];
     }
     return base;
   });
   // フィルタリングで選択したステータス
-  const [filterStatuses, setFilterStatuses] = useState<TaskStatus[]>(
-    () => loadSavedState(storageKey)?.filterStatuses ?? ["TODO", "DOING"],
+  const [filterStatuses, setFilterStatuses] = useState<TaskStatus[]>(() =>
+    isFresh
+      ? ["TODO", "DOING"]
+      : (loadSavedState(storageKey)?.filterStatuses ?? ["TODO", "DOING"]),
   );
   // フィルタリングで選択した優先度
   const [filterPriorities, setFilterPriorities] = useState<TaskPriority[]>(
-    () => loadSavedState(storageKey)?.filterPriorities ?? [],
+    () => (isFresh ? [] : (loadSavedState(storageKey)?.filterPriorities ?? [])),
   );
   // フィルタリングで選択した開始日付
   const [filterDueDateFrom, setFilterDueDateFrom] = useState<Dayjs | null>(
     () => {
+      if (isFresh) return null;
       const saved = loadSavedState(storageKey)?.filterDueDateFrom;
       return saved ? dayjs(saved) : null;
     },
   );
   // フィルタリングで選択した終了日付
   const [filterDueDateTo, setFilterDueDateTo] = useState<Dayjs | null>(() => {
+    if (isFresh) return null;
     const saved = loadSavedState(storageKey)?.filterDueDateTo;
     return saved ? dayjs(saved) : null;
   });
+
+  // fresh=1のとき、sessionStorageをクリアし、URLから「fresh=1」のクエリを除去
+  useEffect(() => {
+    if (isFresh) {
+      try {
+        sessionStorage.removeItem(storageKey);
+      } catch {
+        // ignore
+      }
+      router.replace(pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // フィルタ・ソート状態が変わるたびに sessionStorage に保存
   useEffect(() => {

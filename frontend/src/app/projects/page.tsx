@@ -163,7 +163,9 @@ export default function ProjectsPage() {
                 )}
                 <CardActionArea
                   sx={{ height: "100%" }}
-                  onClick={() => router.push(`/projects/${project.id}/tasks`)}
+                  onClick={() =>
+                    router.push(`/projects/${project.id}/tasks?fresh=1`)
+                  }
                 >
                   <CardContent>
                     <Typography
