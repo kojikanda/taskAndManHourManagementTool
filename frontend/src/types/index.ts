@@ -162,3 +162,50 @@ export type CreateWorkLogRequest = {
   hours: number;
   memo: string;
 };
+
+// ===========================
+// ダッシュボード関連
+// ===========================
+
+export type DashboardKpi = {
+  incompleteTaskCount: number;
+  todayWorkHours: number;
+  monthlyWorkHours: number;
+  overdueTaskCount: number;
+  activeProjectCount: number;
+};
+
+export type DailyWorkHours = {
+  date: string;
+  hours: number;
+};
+
+export type ProjectProgress = {
+  projectId: number;
+  projectName: string;
+  totalTaskCount: number;
+  doneTaskCount: number;
+  progressRate: number;
+};
+
+// ===========================
+// 見積・実績比較関連
+// ===========================
+
+export type TaskEstimateActual = {
+  taskId: number;
+  taskTitle: string;
+  estimated: number;
+  actual: number;
+  diff: number;
+  status: TaskStatus;
+  dueDate: string | null;
+};
+
+export type ProjectEstimateActual = {
+  estimatedTotal: number;
+  actualTotal: number;
+  diff: number;
+  actualRate: number;
+  tasks: TaskEstimateActual[];
+};

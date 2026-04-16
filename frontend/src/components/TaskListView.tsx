@@ -21,10 +21,18 @@ import {
   TableHead,
   TableRow,
   Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  IconButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ClearIcon from "@mui/icons-material/Clear";
 import PersonIcon from "@mui/icons-material/Person";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { Avatar, Tooltip } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
@@ -128,7 +136,7 @@ type TaskListViewProps = {
  * @param loading ローディング状態
  * @param refetch 再フェッチメソッド
  * @param createProjectId 表示対象のプロジェクトID。指定がない(undefined)のときはプロジェクトID指定なしで、タスク作成ボタンを表示しない。
- * @returns
+ * @returns タスク一覧ビューコンポーネント
  */
 export default function TaskListView({
   title,
@@ -243,6 +251,16 @@ export default function TaskListView({
   // タスク作成モーダルが表示しているか
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
+  // ︙メニューの表示状態
+  const [actionMenu, setActionMenu] = useState<{
+    anchor: HTMLElement;
+    taskId: number;
+  } | null>(null);
+  // ︙メニューが開いているか
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  // 削除確認ダイアログ
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+
   // タスク一覧に対して、フィルタリング＆ソートした結果をmemoで保持
   const filteredSortedTasks = useMemo(() => {
     const fromStr = filterDueDateFrom?.format("YYYY-MM-DD") ?? "";
@@ -335,6 +353,20 @@ export default function TaskListView({
     setFilterPriorities([]);
     setFilterDueDateFrom(null);
     setFilterDueDateTo(null);
+  };
+
+  // 削除確認ダイアログで削除ボタンが押下されたときのイベントハンドラ
+  const handleDeleteConfirm = async () => {
+    if (deleteTargetId === null) return;
+    try {
+      await api.delete(`/tasks/${deleteTargetId}`);
+      enqueueSnackbar("タスクを削除しました", { variant: "success" });
+      await refetch();
+    } catch {
+      enqueueSnackbar("削除に失敗しました", { variant: "error" });
+    } finally {
+      setDeleteTargetId(null);
+    }
   };
 
   // フィルタリングを行っている対象
@@ -606,13 +638,15 @@ export default function TaskListView({
                     "updatedAt",
                   ] as SortField[]
                 ).map(renderHeaderCell)}
+                {/* ⋮ メニュー用 */}
+                <TableCell />
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredSortedTasks.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={9}
                     align="center"
                     sx={{ py: 6, color: "text.secondary" }}
                   >
@@ -690,6 +724,23 @@ export default function TaskListView({
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
                       {formatDate(task.updatedAt)}
                     </TableCell>
+                    <TableCell
+                      onClick={(e) => e.stopPropagation()} // 行クリックを伝播させない
+                      sx={{ p: 0.5 }}
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          setActionMenu({
+                            anchor: e.currentTarget,
+                            taskId: task.id,
+                          });
+                          setActionMenuOpen(true);
+                        }}
+                      >
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -762,6 +813,25 @@ export default function TaskListView({
         ))}
       </Menu>
 
+      {/* ⋮ メニュー */}
+      <Menu
+        anchorEl={actionMenu?.anchor}
+        open={actionMenuOpen}
+        onClose={() => setActionMenuOpen(false)}
+        slotProps={{ transition: { onExited: () => setActionMenu(null) } }}
+      >
+        <MenuItem
+          onClick={() => {
+            setDeleteTargetId(actionMenu!.taskId);
+            setActionMenuOpen(false);
+          }}
+          sx={{ color: "error.main" }}
+        >
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          削除
+        </MenuItem>
+      </Menu>
+
       {createProjectId !== undefined && (
         <CreateTaskModal
           open={createModalOpen}
@@ -770,6 +840,31 @@ export default function TaskListView({
           projectId={createProjectId}
         />
       )}
+
+      {/* 削除確認ダイアログ */}
+      <Dialog
+        open={deleteTargetId !== null}
+        onClose={() => setDeleteTargetId(null)}
+      >
+        <DialogTitle>タスクの削除</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            このタスクを削除しますか？
+            <br />
+            関連するワーク実績もすべて削除されます。
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTargetId(null)}>キャンセル</Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+          >
+            削除
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

@@ -36,7 +36,7 @@ export default function LoginPage() {
   // すでにログイン済みの場合はプロジェクト一覧へリダイレクト
   useEffect(() => {
     if (user) {
-      router.replace("/projects");
+      router.replace("/dashboard");
     }
   }, [user, router]);
 
@@ -48,7 +48,7 @@ export default function LoginPage() {
       // ローカルストレージにユーザの情報を設定
       login(response.data);
       enqueueSnackbar("ログインしました", { variant: "success" });
-      router.push("/projects");
+      router.push("/dashboard");
     } catch {
       enqueueSnackbar("メールアドレスまたはパスワードが正しくありません", {
         variant: "error",

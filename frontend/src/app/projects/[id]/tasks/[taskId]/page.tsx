@@ -41,8 +41,8 @@ import {
 import { updateTaskField } from "@/lib/taskApi";
 
 /**
- * タスク詳細画面コンポーネント
- * @returns タスク詳細画面コンポーネント
+ * タスク詳細画面ページ
+ * @returns タスク詳細画面ページ
  */
 export default function TaskDetailPage() {
   const params = useParams();
@@ -151,7 +151,7 @@ export default function TaskDetailPage() {
         onClick={() => router.back()}
         sx={{ mb: 2 }}
       >
-        タスク一覧に戻る
+        元の画面に戻る
       </Button>
 
       {/* タスク詳細カード */}

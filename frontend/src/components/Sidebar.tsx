@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import FolderIcon from "@mui/icons-material/Folder";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -65,6 +66,16 @@ export default function Sidebar() {
 
       {/* ナビゲーションリンク */}
       <List sx={{ flex: 1, py: 1 }}>
+        <ListItemButton component={Link} href="/dashboard" sx={listItemSx}>
+          <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
+            <DashboardIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary="ダッシュボード"
+            slotProps={{ primary: { sx: { fontSize: 14 } } }}
+          />
+        </ListItemButton>
+
         <ListItemButton component={Link} href="/projects" sx={listItemSx}>
           <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
             <FolderIcon fontSize="small" />

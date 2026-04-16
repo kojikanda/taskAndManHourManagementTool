@@ -1592,6 +1592,7 @@ useFormのregisterはネイティブの&lt;input&gt;要素に直接参照を渡�
 - FormControl → フォームの入力要素（input、textareaなど）に対して、ラベル、ヘルプテキスト、エラーメッセージをセットで管理し、アクセシビリティ（障害者や高齢者を含む使いやすさ）を高めるためのコンポーネント
 - OutlinedInput → 枠線付きのテキスト入力フィールドを構築するための、Material-UIの低レベルコンポーネント
 - CircularProgress → データの読み込み中や処理の進行状況を円形のループアニメーション（インジケーター）で表示するUIコンポーネント
+- MoreVertIcon → 「⋮」のアイコン
 
 - List → リスト全体のコンテナ。
 - ListItem → 各リスト要素の基本コンポーネント。
@@ -1620,6 +1621,9 @@ useFormのregisterはネイティブの&lt;input&gt;要素に直接参照を渡�
 - container spacing={2} → Gridの親にspacingを指定し、子要素（Grid item）の間に均等な間隔（デフォルトでは16px: 8px✕2）を自動的に設定する
 - gutterBottom → これをtrue（単にgutterBottomと記述）に設定すると、テキスト要素の下部にマージン（margin-bottom）が自動的に追加され、要素間の余白を簡単に確保できる
 - renderValue(Select) → 選択された値をどのように表示するかを決定するメソッドを指定する
+- slotProps={{ primary: { sx: { fontSize: 14 } } }} → slotPropsを利用して、プライマリテキストのカスタマイズを行う
+  - slotProps: ListItemTextのような複合コンポーネントにおいて、内部で使用されている特定の要素（スロット）にpropsを渡すためのプロパティ。
+  - primary: ListItemText のメインテキスト（Typographyコンポーネント）を指す。
 
 ## ■CSS
 
@@ -1635,7 +1639,7 @@ useFormのregisterはネイティブの&lt;input&gt;要素に直接参照を渡�
 - gap: 2 → フレックスアイテム間の間隔(マージン)を指定する
 - flexWrap: "wrap" → 異なる高さの要素が並んでいる場合、すべての要素が一番下（底辺）のラインで揃える
 - whiteSpace: "nowrap" → 改行しない
-- gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } →
+- gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } → Gridの配置指定
   - { xs: "1fr", sm: "1fr 1fr" }: MUIのブレークポイント（Breakpoint）対応オブジェクト。
   - xs: "1fr": extra-small (0px以上)。モバイルデバイスなど、画面が小さい場合に1列で配置。
   - sm: "1fr 1fr": small (600px以上)。タブレットなど、画面が広くなると2列に配置。
@@ -1643,6 +1647,9 @@ useFormのregisterはネイティブの&lt;input&gt;要素に直接参照を渡�
   - gridColumn: CSSの grid-column プロパティを設定し、CSS Gridアイテムの列方向の開始位置と終了位置を制御する。
   - "1 / -1": 「最初の列から最後の列まで」を意味し、グリッドの全幅（カラムの列数に関わらず全体）に要素を span（拡張）させる。
   - { sm: "..." }: MUIのブレークポイントを指定しており、このスタイルは「Small（600px）以上」のデバイスに適用される。
+- flex: 1 → このGridアイテムが、コンテナ内で可能な限り残りのスペースを埋めるように拡大（flex-grow: 1）
+- overflow: "hidden" → コンテナ（箱）からはみ出した文字を表示しない（隠す）。
+- textOverflow: "ellipsis" → 省略されたテキストの末尾に「...」を表示する。
 
 ---
 
@@ -1800,6 +1807,10 @@ Next.jsからSpring Boot APIに接続してください。
 - 工数入力UI
 - 合計時間表示
 - ステータス管理（TODO / DOING / DONE）
+
+---
+
+<br>
 
 # TypeScriptのファイルを開いていると、CPUを異常に使ってしまう場合
 

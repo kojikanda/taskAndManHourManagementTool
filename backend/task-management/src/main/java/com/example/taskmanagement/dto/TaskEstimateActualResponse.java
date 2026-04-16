@@ -3,6 +3,8 @@ package com.example.taskmanagement.dto;
 import com.example.taskmanagement.entity.Task;
 import com.example.taskmanagement.entity.TaskStatus;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+
 import lombok.Getter;
 
 /**
@@ -41,6 +43,11 @@ public class TaskEstimateActualResponse {
      */
     private TaskStatus status;
 
+    /**
+     * 期限日
+     */
+    private LocalDate dueDate;
+
     public static TaskEstimateActualResponse of(Task task, BigDecimal actual) {
         TaskEstimateActualResponse dto = new TaskEstimateActualResponse();
         dto.taskId = task.getId();
@@ -49,6 +56,7 @@ public class TaskEstimateActualResponse {
         dto.actual = actual;
         dto.diff = dto.estimated.subtract(actual);
         dto.status = task.getStatus();
+        dto.dueDate = task.getDueDate();
         return dto;
     }
 }

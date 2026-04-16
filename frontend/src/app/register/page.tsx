@@ -17,8 +17,8 @@ import api from "@/lib/api";
 import { RegisterRequest } from "@/types";
 
 /**
- * ユーザ登録画面コンポーネント
- * @returns ユーザ登録画面コンポーネント
+ * ユーザ登録画面ページ
+ * @returns ユーザ登録画面ページ
  */
 export default function RegisterPage() {
   const router = useRouter();

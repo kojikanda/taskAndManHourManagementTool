@@ -34,7 +34,14 @@ export default function AppLayout({ children }: Props) {
   if (!initialized || !user) return null;
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "grey.50" }}>
+    <Box
+      sx={{
+        display: "flex",
+        height: "100vh",
+        overflow: "hidden",
+        bgcolor: "grey.50",
+      }}
+    >
       <Sidebar />
       <Box component="main" sx={{ flex: 1, p: 3, overflow: "auto" }}>
         {children}
