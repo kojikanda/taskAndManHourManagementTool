@@ -28,6 +28,7 @@ import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import { useProjects, ProjectFilter } from "@/hooks/useProjects";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
+import { getAvatarColor } from "@/lib/taskStyles";
 
 /**
  * プロジェクト一覧画面ページ
@@ -137,6 +138,8 @@ export default function ProjectsPage() {
                   boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
                   "&:hover": { boxShadow: "0 4px 12px rgba(0,0,0,0.15)" },
                   transition: "box-shadow 0.2s",
+                  borderLeft: "4px solid",
+                  borderColor: getAvatarColor(project.id),
                 }}
               >
                 {/* ゴミ箱アイコン（ホバー時のみ表示） */}

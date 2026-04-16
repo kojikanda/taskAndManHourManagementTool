@@ -573,6 +573,36 @@ frontend/src/
   - 自担当タスク一覧（`/tasks/my`）では担当者フィルタを `disabled` にし、常に自分が選択された状態を維持（`lockSelfFilter` prop）
   - 差分表示の色：バックエンドが「見積 − 実績」で計算するため、マイナス（超過）を赤・プラス（余裕あり）を緑で表示
 
+### UI設計（第二弾）実装（完了）
+
+- バックエンド追加実装
+  - `WorkLogRepository.java` → 工数集計クエリ3件追加（日別・月別・日付範囲グループ集計）
+  - `TaskRepository.java` → ダッシュボード用クエリ追加（未完了件数・遅延件数・直近タスク・プロジェクト進捗）
+  - `DashboardService.java` → 追加（KPI・直近タスク・作業時間履歴・プロジェクト進捗の集計）
+  - `DashboardController.java` → 追加（GET /dashboard/kpi, /recent-tasks, /work-hours, /project-progress）
+  - `ProjectService.java` → deleteProject, getEstimateActual を追加（実績工数はN+1を避けMapルックアップで集計）
+  - `TaskService.java` → deleteTask を追加
+  - `dto/TaskEstimateActualResponse.java` → 追加（taskTitle, estimated, actual, diff, status, dueDate）
+  - `dto/DashboardKpiResponse.java` など → 追加（ダッシュボード用DTO群）
+
+- フロントエンド追加実装
+  - `app/page.tsx` → ログイン後のリダイレクト先を `/projects` から `/dashboard` に変更
+  - `app/dashboard/page.tsx` → 追加（KPIカード・直近タスク表・作業時間折れ線グラフ・プロジェクト進捗横棒グラフ）
+  - `app/projects/[id]/tasks/page.tsx` → MUI Tabs を追加（タスク一覧タブ・見積実績比較タブ）
+  - `components/EstimateActualView.tsx` → 追加（サマリ表・期限フィルタ・タスク別実績表・横棒グラフ×2）
+  - `components/Sidebar.tsx` → ダッシュボードリンクを先頭に追加・自担当タスクリンクに `?fresh=1` を付与
+  - `components/AppLayout.tsx` → `height: 100vh` + `overflow: hidden` に変更し、スクロール時にサイドバーが固定されるよう修正
+  - `components/TaskListView.tsx` → タスク削除機能（⋮メニュー）追加・`?fresh=1` による初期状態リセット対応
+  - `app/projects/page.tsx` → プロジェクト削除機能（ホバー時ゴミ箱アイコン）追加・タスク一覧へ `?fresh=1` で遷移・プロジェクトカードに `getAvatarColor` を使ったアクセントボーダー追加
+  - `app/projects/[id]/tasks/[taskId]/page.tsx` → 担当者のインライン編集機能追加（クリックでドロップダウン・POST/DELETE アサインAPI呼び出し）
+  - `hooks/useDashboard.ts` → 追加（useDashboardKpi / useRecentTasks / useWorkHoursHistory / useProjectProgress）
+  - `hooks/useEstimateActual.ts` → 追加（useCallback パターンで React Compiler 警告を回避）
+
+- 主要な技術的対応事項（第二弾）
+  - `useSearchParams` + `?fresh=1` パターンで「初期表示は初期状態、詳細から戻るときは状態復元」を実現
+  - `@mui/x-charts` の横棒グラフで `layout="horizontal"` + `yAxis[0].width` によりラベルの切れを防止
+  - `AppLayout` を `height: 100vh` + `overflow: hidden` にすることでサイドバーの追従スクロールを解消
+
 ### 次のステップ
 
 ⑧ 本番環境へのデプロイ
