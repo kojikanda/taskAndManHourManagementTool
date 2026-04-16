@@ -237,4 +237,17 @@ public class TaskService {
         return taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found: " + id));
     }
+
+    /**
+     * タスクを削除する（アサイン・ワークログもカスケード削除）
+     * 
+     * @param id タスクID
+     */
+    @Transactional
+    public void deleteTask(Long id) {
+        if (!taskRepository.existsById(id)) {
+            throw new RuntimeException("Task not found: " + id);
+        }
+        taskRepository.deleteById(id);
+    }
 }

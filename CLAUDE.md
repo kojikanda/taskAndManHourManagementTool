@@ -155,7 +155,7 @@ UIはReactのMUIを利用する。
 - 集計はDB or Service層で行う
 - 正規化を意識する
 
-## UI設計
+## UI設計 (第一弾)
 
 - ログインしていない場合はログイン画面を表示する。
 - ログイン画面にユーザ登録画面のリンクを置いておき、ユーザ登録画面に遷移できる。
@@ -225,6 +225,82 @@ UIはReactのMUIを利用する。
 - できる限り、モダンな表示となるようにする。(比較的軽微な変更で対応できる、より良い案があれば、逐一提案すること。)
 - レスポンスデザインを意識する。(もし画面サイズが小さい場合に表示に問題が出そうな場合は、逐一通知すること。)
 - 日付フォーマットは、2026年4月13日なら「2026/04/13」の形式とすること。
+
+## UI設計 (第二弾)
+
+### 1. 画面追加
+
+以下の画面・タブを追加する。
+
+- ダッシュボード
+- 見積・実績比較タブ
+
+### 2. ダッシュボード
+
+- ログイン直後はダッシュボードを表示するように変更する。
+- ダッシュボードは以下の構成とする。
+  - KPIカード: 以下のKPIカードを表示する。
+    - 未完了タスク: 自担当タスクのうち、ステータスがTODOとDOINGのタスクの合計
+    - 今日の作業時間: work_logsの自分のレコードのうち、今日の実績合計
+    - 今月の作業時間: work_logsの自分のレコードのうち、今月分の実績合計
+    - 遅延タスク数: タスクの期限が今日より前で、且つ、ステータスがDONE以外のタスクの合計数
+    - 進行中プロジェクト数: 自担当タスクに含まれるプロジェクトの数
+  - 自担当タスク(直近): 自担当タスクのうち、期限が古い方から5つを表で表示する。
+    - 表は以下を表示する。
+      - タスク名
+      - プロジェクト名
+      - ステータス
+      - 優先度
+      - 期限
+    - 表の行を選択すると、タスク詳細画面に遷移する。
+  - 作業時間グラフ: 直近7日分の作業時間を折れ線グラフで表示する。
+  - プロジェクト進捗グラフ: 自担当のタスクが存在するプロジェクトの進捗率を、プロジェクトごとに棒グラフで表示する。
+    - 進捗率は、「プロジェクト内のステータスがDONEのタスク数 / プロジェクト内の全タスク数」で算出する。
+
+### 3. 見積・実績比較タブ
+
+- タスク一覧画面をタブ表示とし、以下のタブを表示する。
+  - タスク一覧タブ: これまで表示していたタスク一覧を表示する。(遷移直後はタスク一覧タブを表示)
+  - 見積・実績比較タブ: 見積・実績比較を表示する。
+- 見積・実績比較タブは以下の構成とする。
+  - サマリ: 表でプロジェクトのサマリの情報を表示する。
+    - サマリの表の内容は以下とする。
+      - 見積合計: プロジェクトごとの全タスクの見積合計を表示する。
+      - 実績合計: プロジェクトごとの全タスクの実績合計を表示する。
+      - 見積 - 実績: 見積 - 実績の値を表示する。値が0以上のときは緑色で、マイナスのときは赤色で表示する。
+      - 実績割合: 実績 / 見積をパーセンテージで表示する。
+    - サマリの表はそれぞれのカラムのヘッダをクリックしてソート可能とする。
+    - ソートしているカラムのタイトル行は「見積合計 ↑」という感じの表示にして、ソートしていることが分かるようにする。
+  - タスク別実績: 表でタスク別実績の情報を表示する。
+    - タスク別実績の表の内容は以下とする。
+      - タスク名: タスク名を表示する。
+      - 見積: タスクの見積を表示する。
+      - 実績: タスクに紐づくワーク実績の時間の合計を表示する。
+      - 見積 - 実績: 見積 - 実績の値を表示する。値が0以上のときは緑色で、マイナスのときは赤色で表示する。
+      - ステータス: タスクのステータスを表示する。
+    - タスク別実績の表はそれぞれのカラムをクリックしてソート可能とする。
+    - ソートしているカラムのタイトル行は「見積 ↑」という感じの表示にして、ソートしていることが分かるようにする。
+  - タスク実績グラフ: タスクごとの見積と実績を棒グラフで表示する。
+  - サマリグラフ: プロジェクト全体の見積合計と実績合計を棒グラフで表示する。
+  - タスク別実績とタスク実績グラフは、タスクの期限でフィルタリング可能とする。(From~Toで指定。Fromのみ、Toのみの指定も可能。)
+
+### 4. サイドバー
+
+- サイドバーのプロジェクト一覧の上に「ダッシュボード」のリンクを追加する。
+- ダッシュボードをクリックすると、ダッシュボードに遷移する。
+
+### 5. プロジェクト削除機能の追加
+
+- プロジェクト一覧画面のプロジェクトごとのカードに対して、マウスポインタがホバーしたら、カードにゴミ箱のアイコンを表示する。
+- ゴミ箱がクリックされたら、確認ダイアログを表示する。
+- 確認ダイアログで「削除」ボタンが押下されたら、プロジェクト(及び、紐づいたタスク、アサインされたユーザのリスト、ワーク実績)を削除する。
+
+### 6. タスク削除機能の追加
+
+- タスク一覧画面のテーブルの右端に「︙」を表示する。
+- 「︙」がクリックされたら、削除メニューを表示する。
+- 削除メニューがクリックされたら、確認ダイアログを表示する。
+- 確認ダイアログで「削除」ボタンが押下されたら、タスク(及び、アサインされたユーザのリスト、ワーク実績)を削除する。
 
 ## その他
 
@@ -361,18 +437,21 @@ frontend/
         └── index.ts                  # 追加（TypeScript型定義）
 ```
 
-### フロントエンド 実装予定の残構成
+### フロントエンド 追加実装済みの構成
 
 ```
-src/
+frontend/src/
 ├── app/
 │   └── projects/[id]/tasks/[taskId]/
-│       └── page.tsx                  # タスク詳細画面
+│       └── page.tsx                  # 追加（タスク詳細画面）
 ├── components/
 │   └── modals/
-│       └── CreateWorkLogModal.tsx    # ワーク実績入力モーダル
-└── hooks/
-    └── useWorkLogs.ts                # ワークログ取得カスタムフック
+│       └── CreateWorkLogModal.tsx    # 追加（ワーク実績入力モーダル）
+├── hooks/
+│   └── useWorkLogs.ts                # 追加（ワークログ・工数集計取得カスタムフック）
+└── lib/
+    ├── taskStyles.ts                 # 追加（STATUS_STYLE / PRIORITY_STYLE / getAvatarColor / formatDate を共通化）
+    └── taskApi.ts                    # 追加（updateTaskField: ステータス・優先度のインライン更新を共通化）
 ```
 
 ## 進捗状況
@@ -439,13 +518,15 @@ src/
     - 許可オリジンは `application-dev.properties` の `cors.allowed-origins` で管理
     - 本番環境は `${CORS_ALLOWED_ORIGINS}` 環境変数から取得する設計
 
-### フロントエンド実装（進行中）
+### フロントエンド実装（完了）
 
 - 追加パッケージ: `axios`, `react-hook-form`, `notistack`, `@mui/material-nextjs`, `@emotion/cache`, `@mui/x-date-pickers`, `dayjs`
 - VSCode デバッグ設定（`launch.json`）に Next.js 起動設定を追加
 - 実装済み画面・コンポーネント
   - `types/index.ts` → TypeScript型定義（全エンティティ・リクエスト・レスポンス型）
   - `lib/api.ts` → axiosインスタンス（JWTインターセプター付き）
+  - `lib/taskStyles.ts` → ステータス・優先度スタイル定数・アバター色・日付フォーマット関数を共通化
+  - `lib/taskApi.ts` → タスクのステータス・優先度インライン更新処理を共通化（`updateTaskField`）
   - `contexts/AuthContext.tsx` → 認証状態のグローバル管理（localStorage連携・initialized フラグ付き）
   - `components/Providers.tsx` → AuthProvider + SnackbarProvider + LocalizationProvider のまとめ
   - `app/layout.tsx` → AppRouterCacheProvider・CssBaseline・Providers を組み込み
@@ -456,11 +537,14 @@ src/
   - `components/TaskListView.tsx` → タスク一覧共通コンポーネント（フィルタリング・ソート・インライン編集）
   - `app/projects/page.tsx` → プロジェクト一覧画面（トグルボタンフィルタ・カード表示・スケルトンUI）
   - `app/projects/[id]/tasks/page.tsx` → プロジェクト別タスク一覧画面
+  - `app/projects/[id]/tasks/[taskId]/page.tsx` → タスク詳細画面（詳細表示・ステータス/優先度変更・ワークログ一覧）
   - `app/tasks/my/page.tsx` → 自担当タスク一覧画面（全プロジェクト横断）
   - `components/modals/CreateProjectModal.tsx` → プロジェクト作成モーダル
   - `components/modals/CreateTaskModal.tsx` → タスク作成モーダル（DatePicker・担当者複数選択）
+  - `components/modals/CreateWorkLogModal.tsx` → ワーク実績入力モーダル
   - `hooks/useProjects.ts` → プロジェクト一覧取得カスタムフック（filter対応）
   - `hooks/useTasks.ts` → タスク一覧取得カスタムフック（projectId / assignedUserId 対応）
+  - `hooks/useWorkLogs.ts` → ワークログ・工数集計取得カスタムフック（Promise.all で並列取得）
   - 全画面の動作確認済み
 
 - バックエンド追加修正（フロントエンド実装対応）
@@ -475,6 +559,8 @@ src/
   - `security/UserDetailsServiceImpl.java` → UserPrincipal を返すように変更
   - `dto/ProjectResponse.java`, `CreateProjectRequest.java`, `UserResponse.java` → 追加
   - POST /projects でオーナーIDをJWTから取得する設計（@AuthenticationPrincipal 使用）
+  - `WorkLogRepository.java` → `findByTaskIdOrderByWorkDateDesc` に変更（ワークログをDESC順で取得）
+  - `WorkLogResponse.java` → `userName` フィールドを追加
 
 - 主要な技術的対応事項
   - MUI v9 の破壊的変更対応（`primaryTypographyProps` → `slotProps.primary` など）
@@ -482,17 +568,19 @@ src/
   - React Compiler のリント警告対応（`// eslint-disable-next-line` で回避）
   - ハイドレーションエラー対応（AuthContext に `initialized` フラグを追加し、AppLayout で初期化完了を待つ）
   - React Compiler の誤検知（useEffect 内 setState 警告）の回避
+  - タスク詳細画面からの「戻る」は `router.back()` でブラウザ履歴に従って戻るように実装
+  - タスク一覧のフィルタ・ソート状態を `sessionStorage` に保存し、タスク詳細から戻ったときに状態を復元
+  - 自担当タスク一覧（`/tasks/my`）では担当者フィルタを `disabled` にし、常に自分が選択された状態を維持（`lockSelfFilter` prop）
+  - 差分表示の色：バックエンドが「見積 − 実績」で計算するため、マイナス（超過）を赤・プラス（余裕あり）を緑で表示
 
 ### 次のステップ
 
-⑦ Next.js実装（続き）
+⑧ 本番環境へのデプロイ
 
-- `app/projects/[id]/tasks/[taskId]/page.tsx` → タスク詳細画面
-  - タスク詳細情報の表示（タイトル・説明・担当者・ステータス・優先度・期限・見積時間・実績時間・差分）
-  - ステータス・優先度のインライン変更
-  - ワークログ一覧表示（日付降順）
-- `components/modals/CreateWorkLogModal.tsx` → ワーク実績入力モーダル
-- `hooks/useWorkLogs.ts` → ワークログ取得カスタムフック
+- Frontend: Vercel へのデプロイ（Next.js）
+- Backend: Render へのデプロイ（Spring Boot）
+- DB: Neon への接続設定（PostgreSQL）
+- 環境変数の設定（JWT_SECRET, CORS_ALLOWED_ORIGINS など）
 
 ---
 

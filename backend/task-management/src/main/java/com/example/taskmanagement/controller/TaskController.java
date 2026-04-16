@@ -139,4 +139,16 @@ public class TaskController {
     public ResponseEntity<List<Long>> getAssignedUsers(@PathVariable Long taskId) {
         return ResponseEntity.ok(taskService.getAssignedUserIds(taskId));
     }
+
+    /**
+     * タスク削除
+     * 
+     * @param id タスクID
+     * @return プロジェクトの見積・実績比較レスポンスDTO
+     */
+    @DeleteMapping("/tasks/{id}")
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
+        taskService.deleteTask(id);
+        return ResponseEntity.noContent().build();
+    }
 }

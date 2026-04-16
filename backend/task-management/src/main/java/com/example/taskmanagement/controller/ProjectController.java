@@ -1,6 +1,7 @@
 package com.example.taskmanagement.controller;
 
 import com.example.taskmanagement.dto.CreateProjectRequest;
+import com.example.taskmanagement.dto.ProjectEstimateActualResponse;
 import com.example.taskmanagement.dto.ProjectResponse;
 import com.example.taskmanagement.entity.Project;
 import com.example.taskmanagement.security.UserPrincipal;
@@ -63,5 +64,28 @@ public class ProjectController {
         };
 
         return ResponseEntity.ok(projects.stream().map(ProjectResponse::from).toList());
+    }
+
+    /**
+     * プロジェクトの見積・実績比較データ取得
+     * 
+     * @param projectId プロジェクトID
+     * @return プロジェクトの見積・実績比較レスポンスDTO
+     */
+    @GetMapping("/projects/{projectId}/estimate-actual")
+    public ResponseEntity<ProjectEstimateActualResponse> getEstimateActual(@PathVariable Long projectId) {
+        return ResponseEntity.ok(projectService.getEstimateActual(projectId));
+    }
+
+    /**
+     * プロジェクト削除
+     * 
+     * @param id プロジェクトID
+     * @return 204(No Content)のレスポンス
+     */
+    @DeleteMapping("/projects/{id}")
+    public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
+        projectService.deleteProject(id);
+        return ResponseEntity.noContent().build();
     }
 }
