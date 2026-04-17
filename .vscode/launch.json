@@ -7,20 +7,21 @@
       "request": "launch",
       "mainClass": "com.example.taskmanagement.TaskManagementApplication",
       "projectName": "task-management",
-      "vmArgs": "-Dspring.profiles.active=dev"
+      "vmArgs": "-Dspring.profiles.active=dev",
+      "envFile": "${workspaceFolder}/backend/.env.local"
     },
     {
-        "type": "node",
-        "name": "Debug Next.js",
-        "request": "launch",
-        "runtimeExecutable": "npm",
-        "runtimeArgs": ["run", "dev"],
-        "cwd": "${workspaceFolder}/frontend",
-        "serverReadyAction": {
-          "pattern": "Local:.+(https?://.+)",
-          "uriFormat": "%s",
-          "action": "openExternally"
-        }
+      "type": "node",
+      "name": "Debug Next.js",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/frontend",
+      "serverReadyAction": {
+        "pattern": "Local:.+(https?://.+)",
+        "uriFormat": "%s",
+        "action": "openExternally"
       }
+    }
   ]
-} 
+}

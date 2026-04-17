@@ -752,8 +752,11 @@ spring.datasource.username=xxx
 spring.datasource.password=
 
 # JPA設定
+# 自動的にテーブルをアップデートする設定。本番環境ではnoneにする(Flywayを使うため)。
 spring.jpa.hibernate.ddl-auto=update
+# デバッグ用にクエリが分かるようにする(多分コンソールに出てくるやつ)。本番環境ではfalseにする。
 spring.jpa.show-sql=true
+# デバッグ用に出力されたクエリをフォーマットする設定。本番環境では設定しない。
 spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
 ```
@@ -1868,3 +1871,132 @@ files.watcherExclude は VSCode のファイル監視デーモン（inotify /FSE
 これが設定されていないと、.next/内のファイルが変わるたびに言語サービスが再解析を走らせる。
 
 ファイルを修正後、VSCodeを再起動する。
+
+---
+
+<br>
+
+# デプロイ
+
+## 1. Neon
+
+Neonにログインして、プロジェクトを作ると、「postgresql://」から始まるURLが発行される。<br>
+これを設定ファイル、環境変数に設定すれば良い。<br>
+(ユーザ名、パスワードはこのURLに設定されている。)
+
+環境変数はRenderに指定する。<br>
+今回は.env.prodに設定しておき、Renderで読み込ませる。
+
+### application-prod.properties
+
+```properties
+spring.datasource.url=${DATABASE_URL}
+```
+
+環境変数
+
+```properties
+DATABASE_URL=jdbc:postgresql://から始まるURL
+```
+
+Neonが発行するURLは頭に「jdbc:」が付いていないが、つけないとJDBCドライバが認識できないので注意。
+
+## 2. Flyway導入
+
+本番現場では Flywayなどのマイグレーションツール を使うのが一般的。
+
+仕組み：
+
+- SQLファイル（マイグレーションスクリプト）を書いておく
+- 起動時にFlywayが未適用のSQLを順番に実行してテーブルを作成・変更する
+- どこまで適用済みかをDBで管理するので、安全にスキーマ管理できる
+
+pom.xmlには以下の設定を追加する。
+
+```xml
+<!-- Flyway -->
+<dependency>
+    <groupId>org.flywaydb</groupId>
+    <artifactId>flyway-core</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.flywaydb</groupId>
+    <artifactId>flyway-database-postgresql</artifactId>
+</dependency>
+```
+
+マイグレーションSQLは以下のように格納する。
+
+```
+resources/
+ └── db/migration/
+          ├── V1**create_users.sql
+          ├── V2**create_projects.sql
+          ├── V3**create_tasks.sql
+          └── V4**create_work_logs.sql
+```
+
+---
+
+Flyway導入には以下の作業が増える：
+
+- pom.xml に依存追加
+- SQLファイルを書く
+- application-prod.propertiesのddl-auto=**none**に変更。
+
+## 3. Render
+
+### ①New Web Serviceを作成
+
+Renderダッシュボードで New → Web Service を選択し、GitHubリポジトリを連携する。
+
+### ②基本設定
+
+| 項目          | 設定値                                                                      |
+| ------------- | --------------------------------------------------------------------------- |
+| Name          | 任意（例: task-management-api）                                             |
+| Region        | Singapore（日本から近い）                                                   |
+| Branch        | main                                                                        |
+| Runtime       | Java ではなく Dockerは使わずNativeでOK → 後述                               |
+| Build Command | cd backend/task-management && ./mvnw clean package -DskipTests              |
+| Start Command | java -jar backend/task-management/target/task-management-0.0.1-SNAPSHOT.jar |
+
+### ③環境変数設定
+
+Environment Variables に以下を追加。
+
+```properties
+# Neonで発行されたURL
+DATABASE_URL=Neonで発行されたURL(頭にjdbcを付ける)
+
+# JWTの秘密鍵
+JWT_SECRET=秘密鍵の値
+
+# Spring Boot設定(本番用設定で動作)
+SPRING_PROFILES_ACTIVE=prod
+
+# CORS設定(後でVercelのURLに変更する)
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+```
+
+### ④Instanceタイプ設定
+
+無料版の場合は**Free**を選択。
+
+### ⑤デプロイ実行
+
+Create Web Serviceボタンでデプロイが始まる。
+
+#### よくあるエラーと対処
+
+| エラー                    | 原因                               | 対処                                                                         |
+| ------------------------- | ---------------------------------- | ---------------------------------------------------------------------------- |
+| Permission denied: ./mvnw | mvnwに実行権限がない               | ローカルで git update-index --chmod=+x backend/task-management/mvnw してpush |
+| DB接続エラー              | DATABASE_URLの形式ミス             | JDBC形式になっているか確認                                                   |
+| Port already in use       | Renderはポート 10000を使う場合あり | 後述                                                                         |
+
+RenderはデフォルトでPort: 10000を期待することがあるので、application-prod.propertiesに以下を追加し、ポート: 8080を使用するよう設定しておく。
+
+```properties
+server.port=${PORT:8080}
+```
