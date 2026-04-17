@@ -1971,17 +1971,16 @@ Renderダッシュボードで New → Web Service を選択し、GitHubリポ�
 
 ### ②基本設定
 
-| 項目            | 設定値                                        |
-| --------------- | --------------------------------------------- |
-| Name            | 任意（例: task-management-api）               |
-| Language        | Docker                                        |
-| Region          | Singapore（日本から近い）                     |
-| Branch          | main                                          |
-| Runtime         | Java ではなく Dockerは使わずNativeでOK → 後述 |
-| Build Command   | 設定不要                                      |
-| Start Command   | 設定不要                                      |
-| Dockerfile Path | ./backend/task-management/Dockerfile          |
-| Docker Context  | ./backend/task-management                     |
+| 項目           | 設定値                                        |
+| -------------- | --------------------------------------------- |
+| Name           | 任意（例: task-management-api）               |
+| Language       | Docker                                        |
+| Region         | Singapore（日本から近い）                     |
+| Root Directory | backend/task-management                       |
+| Branch         | main                                          |
+| Runtime        | Java ではなく Dockerは使わずNativeでOK → 後述 |
+| Build Command  | 設定不要                                      |
+| Start Command  | 設定不要                                      |
 
 ### ③環境変数設定
 
@@ -1989,7 +1988,9 @@ Environment Variables に以下を追加。
 
 ```properties
 # Neonで発行されたURL
-DATABASE_URL=Neonで発行されたURL(頭にjdbcを付ける)
+DATABASE_URL=Neonで発行されたURLからユーザ名とパスワードを省き、頭にjdbcを付けたもの
+DATABASE_USERNAME=Neonで発行されたURLに設定されているユーザ名
+DATABASE_PASSWORD=Neonで発行されたURLに設定されているパスワード
 
 # JWTの秘密鍵
 JWT_SECRET=秘密鍵の値
@@ -2000,6 +2001,9 @@ SPRING_PROFILES_ACTIVE=prod
 # CORS設定(後でVercelのURLに変更する)
 CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
+
+Neonが発行するURLは、postgresql://username:password@ep-flat-rice...の形式。
+環境変数の指定では、上記の通り、これを編集する必要がある。
 
 ### ④Instanceタイプ設定
 
