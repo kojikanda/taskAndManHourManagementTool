@@ -2026,3 +2026,33 @@ RenderはデフォルトでPort: 10000を期待することがあるので、app
 ```properties
 server.port=${PORT:8080}
 ```
+
+## 4. Vercel
+
+### ①Vercelにログイン・新規プロジェクト作成
+
+Vercelダッシュボードで Add New → Project を選択し、GitHubリポジトリを連携する。
+
+### ②基本設定
+
+| 項目             | 設定値                                              |
+| ---------------- | --------------------------------------------------- |
+| Framework Preset | Next.js（Root Directoryを設定すると自動設定される） |
+| Root Directory   | ./frontend                                          |
+| Build Command    | そのまま（next build）                              |
+| Output Directory | そのまま                                            |
+
+### ③環境変数を設定
+
+Environment Variables に以下を追加する。
+
+| キー                     | 値                            |
+| ------------------------ | ----------------------------- |
+| NEXT_PUBLIC_API_BASE_URL | https://(RenderのサービスURL) |
+
+RenderのサービスURLは Renderダッシュボードの該当サービスページ上部に表示されている。<br>
+（例：https://task-management-api.onrender.com）
+
+### ④Deploy実行
+
+Deploy ボタンを押してデプロイを開始する。
