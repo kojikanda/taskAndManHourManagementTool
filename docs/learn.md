@@ -1946,20 +1946,42 @@ Flyway導入には以下の作業が増える：
 
 ## 3. Render
 
+### 事前準備
+
+RenderはJavaをネイティブサポートしていないので、Dockerを使って環境を作る必要がある。
+
+backend/task-management/Dockerfileを作成し、gitに登録する。
+
+```dockerfile
+FROM eclipse-temurin:17-jdk AS build
+WORKDIR /app
+COPY . .
+RUN ./mvnw clean package -DskipTests
+
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=build /app/target/task-management-0.0.1-SNAPSHOT.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
 ### ①New Web Serviceを作成
 
 Renderダッシュボードで New → Web Service を選択し、GitHubリポジトリを連携する。
 
 ### ②基本設定
 
-| 項目          | 設定値                                                                      |
-| ------------- | --------------------------------------------------------------------------- |
-| Name          | 任意（例: task-management-api）                                             |
-| Region        | Singapore（日本から近い）                                                   |
-| Branch        | main                                                                        |
-| Runtime       | Java ではなく Dockerは使わずNativeでOK → 後述                               |
-| Build Command | cd backend/task-management && ./mvnw clean package -DskipTests              |
-| Start Command | java -jar backend/task-management/target/task-management-0.0.1-SNAPSHOT.jar |
+| 項目            | 設定値                                        |
+| --------------- | --------------------------------------------- |
+| Name            | 任意（例: task-management-api）               |
+| Language        | Docker                                        |
+| Region          | Singapore（日本から近い）                     |
+| Branch          | main                                          |
+| Runtime         | Java ではなく Dockerは使わずNativeでOK → 後述 |
+| Build Command   | 設定不要                                      |
+| Start Command   | 設定不要                                      |
+| Dockerfile Path | ./backend/task-management/Dockerfile          |
+| Docker Context  | ./backend/task-management                     |
 
 ### ③環境変数設定
 
@@ -1985,7 +2007,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000
 
 ### ⑤デプロイ実行
 
-Create Web Serviceボタンでデプロイが始まる。
+Deploy Web Serviceボタンでデプロイが始まる。
 
 #### よくあるエラーと対処
 
