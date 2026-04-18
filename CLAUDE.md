@@ -657,6 +657,25 @@ frontend/src/
 - ダッシュボードKPIカードの色修正
   - 遅延タスクの色を赤色系（`#c62828` / `#ffebee`）で固定。遅延タスクが0件のときに「今日の作業時間」（緑）と色がかぶっていた問題を解消。
 
+- モーダル表示時のスクロールロック（iOS対応）
+  - スマホでモーダルを開いてキーボードが表示されると、背景がスクロールしてモーダルのタップ位置がズレる問題を修正。
+  - 原因: `AppLayout` の `<main>` Box（`overflow: auto`）が独立したスクロール領域のため、MUI Dialog のスクロールロック（`body` を対象）が効かない。iOS Safari / iOS Chrome では `overflow: hidden` をdivに設定してもタッチスクロールが止まらないという仕様もある。
+  - 対応: `body` を `position: fixed` + `top: -scrollY` で固定し、モーダルを閉じたときに `window.scrollTo` でスクロール位置を復元するパターンで解決（iOS Safariの定番解法）。
+  - `hooks/useModalScrollLock.ts` → 新規作成（カスタムフックとして共通化）。`open` を引数に受け取り、`true` のとき body を固定、`false` / アンマウント時に復元する。
+  - `CreateWorkLogModal.tsx`・`CreateProjectModal.tsx`・`CreateTaskModal.tsx` → それぞれ `useModalScrollLock(open)` を追加。
+
+- ヘッダーのレスポンシブ対応
+  - `app/projects/page.tsx`・`components/TaskListView.tsx` → タイトルとボタンを並べるヘッダー `Box` に `flexDirection: { xs: "column", sm: "row" }`・`alignItems: { xs: "flex-start", sm: "center" }`・`gap: 1` を追加。スマホ時に改行が発生していた問題を解消。
+
+- プロジェクト作成後のフィルタ自動切り替え
+  - `app/projects/page.tsx` → `CreateProjectModal` の `onCreated` で `setFilter("owner")` を呼び出し、プロジェクト作成直後に「管理対象」フィルタへ自動切り替え。作成したプロジェクトが一覧に表示されない問題を解消。
+
+- モーダル外クリック・Escキーで閉じないよう修正
+  - `CreateWorkLogModal.tsx`・`CreateProjectModal.tsx`・`CreateTaskModal.tsx` → `Dialog` の `onClose` に `reason` の判定を追加。`backdropClick`（モーダル外クリック）と `escapeKeyDown`（Escキー）のときは閉じないよう変更。入力途中の誤操作で入力内容が消える問題を解消。
+
+- プロジェクト削除をメニュー（⋮）方式に変更
+  - `app/projects/page.tsx` → ホバー時のゴミ箱アイコン表示をやめ、タスク一覧と同様の ⋮ ボタン常時表示 → メニュー → 確認ダイアログ の2ステップに変更。スマホではホバー操作ができないため。`hoveredProjectId` state を削除し、`actionMenu` / `actionMenuOpen` state に置き換え。
+
 ### 次のステップ
 
 現時点で全機能のデプロイ完了・スマホ対応完了。必要に応じて以下を対応。

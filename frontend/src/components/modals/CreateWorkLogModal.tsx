@@ -72,7 +72,16 @@ export default function CreateWorkLogModal({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+    <Dialog
+      open={open}
+      onClose={(_, reason) => {
+        // モーダル外クリックとEscキーでは閉じない
+        if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+        handleClose();
+      }}
+      maxWidth="xs"
+      fullWidth
+    >
       <DialogTitle>ワーク実績登録</DialogTitle>
       <Box component="form" onSubmit={handleSubmit(onSubmit)}>
         <DialogContent

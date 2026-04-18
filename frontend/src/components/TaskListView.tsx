@@ -284,7 +284,7 @@ export default function TaskListView({
   } | null>(null);
   // ︙メニューが開いているか
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
-  // 削除確認ダイアログ
+  // 削除対象のタスクID
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
   // タスク一覧に対して、フィルタリング＆ソートした結果をmemoで保持

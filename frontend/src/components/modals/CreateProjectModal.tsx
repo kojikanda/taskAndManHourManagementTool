@@ -61,7 +61,16 @@ export default function CreateProjectModal({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={(_, reason) => {
+        // モーダル外クリックとEscキーでは閉じない
+        if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+        handleClose();
+      }}
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogTitle>プロジェクト作成</DialogTitle>
       <Box component="form" onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>

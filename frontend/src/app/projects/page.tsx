@@ -17,9 +17,12 @@ import {
   DialogContentText,
   DialogActions,
   IconButton,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSnackbar } from "notistack";
@@ -38,13 +41,27 @@ export default function ProjectsPage() {
   const { enqueueSnackbar } = useSnackbar();
   const router = useRouter();
   const { user } = useAuth();
-  const [filter, setFilter] = useState<ProjectFilter>("assigned"); // 初期値は「自担当タスクあり」
+
+  // フィルタリング内容
+  const [filter, setFilter] = useState<ProjectFilter>("assigned");
+
+  // プロジェクトの情報取得
   const { projects, loading, refetch } = useProjects(
     user?.userId ?? null,
     filter,
   );
+
+  // プロジェクト追加のモーダル表示・非表示
   const [modalOpen, setModalOpen] = useState(false);
-  const [hoveredProjectId, setHoveredProjectId] = useState<number | null>(null);
+
+  // ︙メニューの表示状態
+  const [actionMenu, setActionMenu] = useState<{
+    anchor: HTMLElement;
+    projectId: number;
+  } | null>(null);
+  // ⋮ メニューが開いているか
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  // 削除対象のプロジェクトID
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
   // フィルタのトグルボタン押下時イベントハンドラ
@@ -131,12 +148,10 @@ export default function ProjectsPage() {
           {projects.map((project) => (
             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={project.id}>
               <Card
-                onMouseEnter={() => setHoveredProjectId(project.id)}
-                onMouseLeave={() => setHoveredProjectId(null)}
                 sx={{
                   height: "100%",
                   borderRadius: 2,
-                  position: "relative", // ← ゴミ箱アイコンの絶対配置のために追加
+                  position: "relative",
                   boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
                   "&:hover": { boxShadow: "0 4px 12px rgba(0,0,0,0.15)" },
                   transition: "box-shadow 0.2s",
@@ -144,28 +159,29 @@ export default function ProjectsPage() {
                   borderColor: getAvatarColor(project.id),
                 }}
               >
-                {/* ゴミ箱アイコン（ホバー時のみ表示） */}
-                {hoveredProjectId === project.id && (
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      // タスク一覧に伝播しないよう伝播を止める
-                      e.stopPropagation();
-                      setDeleteTargetId(project.id);
-                    }}
-                    sx={{
-                      position: "absolute",
-                      bottom: 8,
-                      right: 8,
-                      zIndex: 1,
-                      color: "error.main",
-                      bgcolor: "white",
-                      "&:hover": { bgcolor: "error.50" },
-                    }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                )}
+                {/* ⋮ メニューボタン */}
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    // タスク一覧に伝播しないよう伝播を止める
+                    e.stopPropagation();
+                    setActionMenu({
+                      anchor: e.currentTarget,
+                      projectId: project.id,
+                    });
+                    setActionMenuOpen(true);
+                  }}
+                  sx={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    zIndex: 1,
+                    color: "text.secondary",
+                  }}
+                >
+                  <MoreVertIcon fontSize="small" />
+                </IconButton>
+
                 <CardActionArea
                   sx={{ height: "100%" }}
                   onClick={() =>
@@ -176,7 +192,7 @@ export default function ProjectsPage() {
                     <Typography
                       variant="h6"
                       gutterBottom
-                      sx={{ fontWeight: "bold", pr: 4 }}
+                      sx={{ fontWeight: "bold", pr: 4 }} // ← ⋮ボタンと被らないよう pr: 4 は維持
                     >
                       {project.name}
                     </Typography>
@@ -190,6 +206,25 @@ export default function ProjectsPage() {
           ))}
         </Grid>
       )}
+
+      {/* ⋮ メニュー */}
+      <Menu
+        anchorEl={actionMenu?.anchor}
+        open={actionMenuOpen}
+        onClose={() => setActionMenuOpen(false)}
+        slotProps={{ transition: { onExited: () => setActionMenu(null) } }}
+      >
+        <MenuItem
+          onClick={() => {
+            setDeleteTargetId(actionMenu!.projectId);
+            setActionMenuOpen(false);
+          }}
+          sx={{ color: "error.main" }}
+        >
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          削除
+        </MenuItem>
+      </Menu>
 
       {/* プロジェクト作成モーダル */}
       <CreateProjectModal
