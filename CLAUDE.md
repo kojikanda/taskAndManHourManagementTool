@@ -511,7 +511,7 @@ frontend/src/
   - ログアウトはステートレスなJWTの性質上、フロントエンドでトークンを削除するだけで対応
   - JWTのペイロードに `userId` をカスタムクレームとして追加（`JwtUtil.generateToken` の引数に userId 追加）
 
-- フロントエンド実装に伴うバックエンド追加修正（完了）
+- ⑦ フロントエンド実装に伴うバックエンド追加修正（完了）
   - `TaskResponse` に `projectName`・`assignedUsers`（id + name）を追加
   - `LoginResponse` に `userId`・`name`・`email` を追加
   - `SecurityConfig` に CORS設定を追加
@@ -634,11 +634,33 @@ frontend/src/
   - ルート直下に `.env.local` を作成（バックエンド用・gitignore対象）
   - ルート `.gitignore` に `.env.local` / `.env.prod` を追加
 
+### スマホ対応（完了）
+
+本番デプロイ後の動作確認で発覚したスマホ表示の問題を修正。
+
+- サイドバーのレスポンシブ対応
+  - `Sidebar.tsx` → MUI `Drawer` コンポーネントに置き換え。PC時は `permanent`（常時表示）、スマホ時は `temporary`（ハンバーガーメニューで開閉）に切り替え。
+  - `AppLayout.tsx` → スマホ時のみ表示する `AppBar`（ハンバーガーアイコン付き）を追加。`mobileOpen` 状態を管理し `Sidebar` に渡す。`main` エリアに PC時のみ `ml: "220px"` を追加（`permanent` Drawer は `position: fixed` のためフローに影響しないため）。
+  - `lib/commonStyles.ts` → 新規作成。`DRAWER_WIDTH = 220` を定数として定義し、`Sidebar.tsx` と `AppLayout.tsx` で共有。
+  - スマホ時はドロワー内の「タスク工数管理ツール」テキストを非表示にし、AppBar のヘッダと重複しないよう修正。
+  - ナビゲーションリンクをクリックしたらドロワーを自動で閉じるよう `onClose()` を各リンクの `onClick` に追加。
+
+- テーブルのスマホ対応（カード表示への切り替え）
+  - `useMediaQuery(theme.breakpoints.down("sm"))` で `isMobile` を判定し、スマホ時はカード、PC時はテーブルを表示するよう切り替え。
+  - `TaskListView.tsx` → スマホ時にカード表示に切り替え。ソート用のセレクトボックス＋昇順/降順トグルボタンをカード上部に追加。ステータス・優先度のインライン編集（Menu）はカードでもそのまま動作。
+  - `EstimateActualView.tsx` → タスク別実績テーブルをスマホ時はカード表示に切り替え。ソートコントロールを追加。サマリテーブルはカラム数が少ないためテーブルのまま。
+  - `app/dashboard/page.tsx` → 自担当タスク（直近）テーブルをスマホ時はカード表示に切り替え（ソートなし）。
+
+- ログイン・登録ボタンのちらつき修正
+  - `app/page.tsx`（ログイン）・`app/register/page.tsx`（ユーザ登録） → `isNavigating` state を追加。ログイン/登録成功後に `setIsNavigating(true)` を呼び出し、`isSubmitting || isNavigating` でボタンを disabled にすることで、`react-hook-form` の `isSubmitting` がページ遷移前に `false` に戻ってボタンが一瞬活性化する問題を修正。
+
+- ダッシュボードKPIカードの色修正
+  - 遅延タスクの色を赤色系（`#c62828` / `#ffebee`）で固定。遅延タスクが0件のときに「今日の作業時間」（緑）と色がかぶっていた問題を解消。
+
 ### 次のステップ
 
-現時点で全機能のデプロイ完了。必要に応じて以下を対応。
+現時点で全機能のデプロイ完了・スマホ対応完了。必要に応じて以下を対応。
 
-- 全機能の本番環境での動作確認
 - 追加機能の実装
 
 ---

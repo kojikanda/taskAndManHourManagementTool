@@ -15,6 +15,8 @@ import {
   TableHead,
   TableRow,
   Typography,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
@@ -43,6 +45,10 @@ export default function DashboardPage() {
   const { tasks, loading: tasksLoading } = useRecentTasks();
   const { workHours, loading: workHoursLoading } = useWorkHoursHistory();
   const { progress, loading: progressLoading } = useProjectProgress();
+
+  // モバイル判定
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const kpiCards = kpi
     ? [
@@ -75,8 +81,8 @@ export default function DashboardPage() {
           value: kpi.overdueTaskCount,
           unit: "件",
           icon: <WarningAmberIcon />,
-          color: kpi.overdueTaskCount > 0 ? "#c62828" : "#2e7d32",
-          bgcolor: kpi.overdueTaskCount > 0 ? "#ffebee" : "#e8f5e9",
+          color: "#c62828",
+          bgcolor: "#ffebee",
         },
         {
           label: "進行中プロジェクト",
@@ -186,7 +192,63 @@ export default function DashboardPage() {
         </Typography>
         {tasksLoading ? (
           [...Array(3)].map((_, i) => <Skeleton key={i} height={40} />)
+        ) : isMobile ? (
+          // モバイル: カード表示
+          tasks.length === 0 ? (
+            <Typography
+              color="text.secondary"
+              sx={{ py: 4, textAlign: "center" }}
+            >
+              タスクがありません
+            </Typography>
+          ) : (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              {tasks.map((task) => (
+                <Paper
+                  key={task.id}
+                  variant="outlined"
+                  sx={{ p: 2, cursor: "pointer", borderRadius: 2 }}
+                  onClick={() =>
+                    router.push(`/projects/${task.projectId}/tasks/${task.id}`)
+                  }
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    {task.title}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {task.projectName}
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: 1,
+                      mt: 1,
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Chip
+                      label={task.status}
+                      size="small"
+                      sx={{ ...STATUS_STYLE[task.status], fontWeight: 600 }}
+                    />
+                    <Chip
+                      label={task.priority}
+                      size="small"
+                      sx={{ ...PRIORITY_STYLE[task.priority], fontWeight: 600 }}
+                    />
+                    {task.dueDate && (
+                      <Typography variant="caption" color="text.secondary">
+                        期限: {formatDate(task.dueDate)}
+                      </Typography>
+                    )}
+                  </Box>
+                </Paper>
+              ))}
+            </Box>
+          )
         ) : (
+          // モバイル以外: テーブル表示
           <TableContainer>
             <Table size="small">
               <TableHead>

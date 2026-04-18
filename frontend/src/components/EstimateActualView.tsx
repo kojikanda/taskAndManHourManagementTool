@@ -13,6 +13,13 @@ import {
   TableHead,
   TableRow,
   Typography,
+  FormControl,
+  InputLabel,
+  Button,
+  Select,
+  MenuItem,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { BarChart } from "@mui/x-charts/BarChart";
@@ -54,7 +61,12 @@ type Props = {
  * @returns 見積・実績比較画面コンポーネント
  */
 export default function EstimateActualView({ projectId }: Props) {
+  // 表示データ取得フック
   const { data, loading } = useEstimateActual(projectId);
+
+  // モバイル判定
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // タスク別テーブルのソート
   const [taskSortField, setTaskSortField] = useState<TaskSortField>("dueDate");
@@ -203,118 +215,236 @@ export default function EstimateActualView({ projectId }: Props) {
         </Table>
       </TableContainer>
 
-      {/* 期限フィルタ */}
-      <Box
-        sx={{
-          display: "flex",
-          gap: 2,
-          mb: 2,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          期限でフィルタ：
-        </Typography>
-        <DatePicker
-          label="From"
-          value={dueDateFrom}
-          onChange={setDueDateFrom}
-          format="YYYY/MM/DD"
-          slotProps={{
-            field: { clearable: true },
-            textField: { size: "small" },
-          }}
-        />
-        <DatePicker
-          label="To"
-          value={dueDateTo}
-          onChange={setDueDateTo}
-          format="YYYY/MM/DD"
-          slotProps={{
-            field: { clearable: true },
-            textField: { size: "small" },
-          }}
-        />
-      </Box>
-
       {/* タスク別実績 */}
       <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
         タスク別実績
       </Typography>
-      <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ bgcolor: "grey.50" }}>
-              {(
-                [
-                  "taskTitle",
-                  "estimated",
-                  "actual",
-                  "diff",
-                  "status",
-                  "dueDate",
-                ] as TaskSortField[]
-              ).map((f) =>
-                renderSortHeader(
-                  f,
-                  TASK_LABELS[f],
-                  taskSortField,
-                  taskSortDir,
-                  makeHandleSort(
-                    f,
-                    taskSortField,
-                    setTaskSortField,
-                    taskSortDir,
-                    setTaskSortDir,
-                  ),
-                  f === "taskTitle" || f === "status" || f === "dueDate"
-                    ? "left"
-                    : "right",
-                ),
-              )}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {sortedTasks.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  align="center"
-                  sx={{ py: 4, color: "text.secondary" }}
+
+      {/* 期限フィルタ */}
+      <Paper sx={{ p: 2, mb: 2 }} variant="outlined">
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <DatePicker
+            label="期限 From"
+            value={dueDateFrom}
+            onChange={setDueDateFrom}
+            format="YYYY/MM/DD"
+            slotProps={{
+              field: { clearable: true },
+              textField: { size: "small" },
+            }}
+          />
+          <DatePicker
+            label="期限 To"
+            value={dueDateTo}
+            onChange={setDueDateTo}
+            format="YYYY/MM/DD"
+            slotProps={{
+              field: { clearable: true },
+              textField: { size: "small" },
+            }}
+          />
+        </Box>
+      </Paper>
+
+      {isMobile ? (
+        // モバイル: カード表示
+        <>
+          {/* ソートコントロール */}
+          <Box sx={{ display: "flex", gap: 1, mb: 2, alignItems: "center" }}>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>並び替え</InputLabel>
+              <Select
+                value={taskSortField}
+                label="並び替え"
+                onChange={(e) =>
+                  setTaskSortField(e.target.value as TaskSortField)
+                }
+              >
+                {(Object.keys(TASK_LABELS) as TaskSortField[]).map((f) => (
+                  <MenuItem key={f} value={f}>
+                    {TASK_LABELS[f]}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() =>
+                setTaskSortDir((prev) => (prev === "asc" ? "desc" : "asc"))
+              }
+            >
+              {taskSortDir === "asc" ? "↑ 昇順" : "↓ 降順"}
+            </Button>
+          </Box>
+
+          {/* カード一覧 */}
+          {sortedTasks.length === 0 ? (
+            <Typography
+              color="text.secondary"
+              sx={{ py: 4, textAlign: "center" }}
+            >
+              タスクがありません
+            </Typography>
+          ) : (
+            <Box
+              sx={{ display: "flex", flexDirection: "column", gap: 1.5, mb: 3 }}
+            >
+              {sortedTasks.map((task) => (
+                <Paper
+                  key={task.taskId}
+                  variant="outlined"
+                  sx={{ p: 2, borderRadius: 2 }}
                 >
-                  タスクがありません
-                </TableCell>
-              </TableRow>
-            ) : (
-              sortedTasks.map((task) => (
-                <TableRow key={task.taskId} hover>
-                  <TableCell>{task.taskTitle}</TableCell>
-                  <TableCell align="right">{task.estimated}h</TableCell>
-                  <TableCell align="right">{task.actual}h</TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{ color: diffColor(task.diff), fontWeight: "bold" }}
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                    {task.taskTitle}
+                  </Typography>
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
                   >
-                    {task.diff > 0 ? "+" : ""}
-                    {task.diff}h
-                  </TableCell>
-                  <TableCell>
+                    {[
+                      {
+                        label: "見積",
+                        value: `${task.estimated}h`,
+                        color: "inherit",
+                      },
+                      {
+                        label: "実績",
+                        value: `${task.actual}h`,
+                        color: "inherit",
+                      },
+                      {
+                        label: "見積 - 実績",
+                        value: `${task.diff > 0 ? "+" : ""}${task.diff}h`,
+                        color: diffColor(task.diff),
+                      },
+                    ].map(({ label, value, color }) => (
+                      <Box
+                        key={label}
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary">
+                          {label}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontWeight: 600, color }}
+                        >
+                          {value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: 1,
+                      mt: 1,
+                      alignItems: "center",
+                    }}
+                  >
                     <Chip
                       label={task.status}
                       size="small"
                       sx={{ ...STATUS_STYLE[task.status], fontWeight: 600 }}
                     />
-                  </TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>
-                    {formatDate(task.dueDate)}
+                    {task.dueDate && (
+                      <Typography variant="caption" color="text.secondary">
+                        期限: {formatDate(task.dueDate)}
+                      </Typography>
+                    )}
+                  </Box>
+                </Paper>
+              ))}
+            </Box>
+          )}
+        </>
+      ) : (
+        // モバイル以外: テーブル表示
+        <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ bgcolor: "grey.50" }}>
+                {(
+                  [
+                    "taskTitle",
+                    "estimated",
+                    "actual",
+                    "diff",
+                    "status",
+                    "dueDate",
+                  ] as TaskSortField[]
+                ).map((f) =>
+                  renderSortHeader(
+                    f,
+                    TASK_LABELS[f],
+                    taskSortField,
+                    taskSortDir,
+                    makeHandleSort(
+                      f,
+                      taskSortField,
+                      setTaskSortField,
+                      taskSortDir,
+                      setTaskSortDir,
+                    ),
+                    f === "taskTitle" || f === "status" || f === "dueDate"
+                      ? "left"
+                      : "right",
+                  ),
+                )}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {sortedTasks.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    align="center"
+                    sx={{ py: 4, color: "text.secondary" }}
+                  >
+                    タスクがありません
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              ) : (
+                sortedTasks.map((task) => (
+                  <TableRow key={task.taskId} hover>
+                    <TableCell>{task.taskTitle}</TableCell>
+                    <TableCell align="right">{task.estimated}h</TableCell>
+                    <TableCell align="right">{task.actual}h</TableCell>
+                    <TableCell
+                      align="right"
+                      sx={{ color: diffColor(task.diff), fontWeight: "bold" }}
+                    >
+                      {task.diff > 0 ? "+" : ""}
+                      {task.diff}h
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={task.status}
+                        size="small"
+                        sx={{ ...STATUS_STYLE[task.status], fontWeight: 600 }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      {formatDate(task.dueDate)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       {/* グラフ */}
       <Grid container spacing={2}>

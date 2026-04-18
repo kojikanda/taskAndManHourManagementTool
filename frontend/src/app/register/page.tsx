@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
@@ -23,6 +24,7 @@ import { RegisterRequest } from "@/types";
 export default function RegisterPage() {
   const router = useRouter();
   const { enqueueSnackbar } = useSnackbar();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const {
     register,
@@ -38,6 +40,7 @@ export default function RegisterPage() {
       enqueueSnackbar("ユーザ登録が完了しました。ログインしてください。", {
         variant: "success",
       });
+      setIsNavigating(true);
       router.push("/");
     } catch {
       enqueueSnackbar(
@@ -124,10 +127,12 @@ export default function RegisterPage() {
                 variant="contained"
                 fullWidth
                 size="large"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isNavigating}
                 sx={{ mt: 2, py: 1.5, borderRadius: 2 }}
               >
-                {isSubmitting ? "登録中..." : "アカウントを作成する"}
+                {isSubmitting || isNavigating
+                  ? "登録中..."
+                  : "アカウントを作成する"}
               </Button>
             </Box>
 

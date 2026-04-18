@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import {
@@ -26,6 +26,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { user, login } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const {
     register,
@@ -48,6 +49,7 @@ export default function LoginPage() {
       // ローカルストレージにユーザの情報を設定
       login(response.data);
       enqueueSnackbar("ログインしました", { variant: "success" });
+      setIsNavigating(true);
       router.push("/dashboard");
     } catch {
       enqueueSnackbar("メールアドレスまたはパスワードが正しくありません", {
@@ -103,10 +105,10 @@ export default function LoginPage() {
               variant="contained"
               fullWidth
               size="large"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isNavigating}
               sx={{ mt: 2 }}
             >
-              {isSubmitting ? "ログイン中..." : "ログイン"}
+              {isSubmitting || isNavigating ? "ログイン中..." : "ログイン"}
             </Button>
           </Box>
 
@@ -115,6 +117,12 @@ export default function LoginPage() {
             <MuiLink component={Link} href="/register">
               こちら
             </MuiLink>
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ textAlign: "center", mt: 2, color: "warning.main" }}
+          >
+            ※15分以上アクセスが無いときは、ログイン完了するまで数分を要することがあるため、ご注意ください。
           </Typography>
         </Paper>
       </Container>

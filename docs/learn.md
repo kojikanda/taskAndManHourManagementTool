@@ -1654,6 +1654,7 @@ useFormのregisterはネイティブの&lt;input&gt;要素に直接参照を渡�
 - flex: 1 → このGridアイテムが、コンテナ内で可能な限り残りのスペースを埋めるように拡大（flex-grow: 1）
 - overflow: "hidden" → コンテナ（箱）からはみ出した文字を表示しない（隠す）。
 - textOverflow: "ellipsis" → 省略されたテキストの末尾に「...」を表示する。
+- alignItems: "flex-end" → Flexboxコンテナ内の子要素（アイテム）を、交差軸（cross axis）の終点（下端または右端）に配置する。
 
 ---
 

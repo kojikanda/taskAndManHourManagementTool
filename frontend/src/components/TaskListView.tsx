@@ -27,6 +27,8 @@ import {
   DialogContentText,
   DialogActions,
   IconButton,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -151,6 +153,10 @@ export default function TaskListView({
   const storageKey = `taskListState:${pathname}`;
   const { user } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
+
+  // モバイル判定
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // 初期表示かどうかをクエリで判断する
   const searchParams = useSearchParams();
@@ -641,7 +647,153 @@ export default function TaskListView({
 
       {loading ? (
         <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 1 }} />
+      ) : isMobile ? (
+        // モバイル: カード表示
+        <>
+          {/* ソートコントロール */}
+          <Box sx={{ display: "flex", gap: 1, mb: 2, alignItems: "center" }}>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>ソート</InputLabel>
+              <Select
+                value={sortField}
+                label="ソート"
+                onChange={(e) => setSortField(e.target.value as SortField)}
+              >
+                {(Object.keys(SORT_LABELS) as SortField[]).map((f) => (
+                  <MenuItem key={f} value={f}>
+                    {SORT_LABELS[f]}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() =>
+                setSortDir((prev) => (prev === "asc" ? "desc" : "asc"))
+              }
+            >
+              {sortDir === "asc" ? "↑ 昇順" : "↓ 降順"}
+            </Button>
+          </Box>
+
+          {/* カード一覧 */}
+          {filteredSortedTasks.length === 0 ? (
+            <Typography
+              color="text.secondary"
+              sx={{ py: 6, textAlign: "center" }}
+            >
+              タスクがありません
+            </Typography>
+          ) : (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              {filteredSortedTasks.map((task) => (
+                <Paper
+                  key={task.id}
+                  variant="outlined"
+                  sx={{ p: 2, cursor: "pointer", borderRadius: 2 }}
+                  onClick={() =>
+                    router.push(`/projects/${task.projectId}/tasks/${task.id}`)
+                  }
+                >
+                  {/* タスク名 + ⋮ メニュー */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, flex: 1, mr: 1 }}
+                    >
+                      {task.title}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActionMenu({
+                          anchor: e.currentTarget,
+                          taskId: task.id,
+                        });
+                        setActionMenuOpen(true);
+                      }}
+                    >
+                      <MoreVertIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+
+                  {/* プロジェクト名 */}
+                  <Typography variant="caption" color="text.secondary">
+                    {task.projectName}
+                  </Typography>
+
+                  {/* ステータス・優先度・期限 */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: 1,
+                      mt: 1,
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Chip
+                      label={task.status}
+                      size="small"
+                      sx={{
+                        ...STATUS_STYLE[task.status],
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setStatusMenu({
+                          anchor: e.currentTarget,
+                          taskId: task.id,
+                        });
+                        setStatusMenuOpen(true);
+                      }}
+                    />
+                    <Chip
+                      label={task.priority}
+                      size="small"
+                      sx={{
+                        ...PRIORITY_STYLE[task.priority],
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPriorityMenu({
+                          anchor: e.currentTarget,
+                          taskId: task.id,
+                        });
+                        setPriorityMenuOpen(true);
+                      }}
+                    />
+                    {task.dueDate && (
+                      <Typography variant="caption" color="text.secondary">
+                        期限: {formatDate(task.dueDate)}
+                      </Typography>
+                    )}
+                  </Box>
+
+                  {/* 担当者 */}
+                  {task.assignedUsers.length > 0 && (
+                    <Box sx={{ mt: 1.5 }}>
+                      <AssignedUsersCell users={task.assignedUsers} />
+                    </Box>
+                  )}
+                </Paper>
+              ))}
+            </Box>
+          )}
+        </>
       ) : (
+        // モバイル以外: テーブル表示
         <TableContainer component={Paper} variant="outlined">
           <Table size="small">
             <TableHead>
