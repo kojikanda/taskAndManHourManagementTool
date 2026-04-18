@@ -1656,6 +1656,12 @@ useFormのregisterはネイティブの&lt;input&gt;要素に直接参照を渡�
 - textOverflow: "ellipsis" → 省略されたテキストの末尾に「...」を表示する。
 - alignItems: "flex-end" → Flexboxコンテナ内の子要素（アイテム）を、交差軸（cross axis）の終点（下端または右端）に配置する。
 
+- 100vh → ビューポートの高さの100%。ブラウザのUI（アドレスバーなど）を含んだ高さを基準に計算される。
+- 100dvh → 動的なビューポート（Dynamic Viewport）の高さの100%。アドレスバーやツールバーが伸縮・表示・消滅した際に、その変化に動的に追従する。
+  → iOSのブラウザでは**dvh**を使うのが基本。
+
+- WebkitOverflowScrolling: "touch" → iOSのSafariなどWebKitブラウザにおいて、要素内のスクロールを滑らか（慣性スクロール）にするCSSプロパティ。
+
 ---
 
 <br>

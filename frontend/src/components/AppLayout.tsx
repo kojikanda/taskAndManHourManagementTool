@@ -41,7 +41,7 @@ export default function AppLayout({ children }: Props) {
     <Box
       sx={{
         display: "flex",
-        height: "100vh",
+        height: "100dvh",
         overflow: "hidden",
         bgcolor: "grey.50",
       }}
@@ -81,6 +81,7 @@ export default function AppLayout({ children }: Props) {
           flex: 1,
           p: 3,
           overflow: "auto",
+          WebkitOverflowScrolling: "touch",
           // スマホ時はAppBarの高さ分だけ上にパディングを追加
           // 48pxはToolbar(variant="dense")の高さ、24pxはsm: 3で指定しているのと同じ値(8x3=24px)
           pt: { xs: "calc(48px + 24px)", sm: 3 },
