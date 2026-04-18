@@ -230,11 +230,7 @@ export default function ProjectsPage() {
       <CreateProjectModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onCreated={() => {
-          // 強制的に「管理対象」に切り替えて追加したプロジェクトを表示
-          setFilter("owner");
-          refetch();
-        }}
+        onCreated={refetch}
       />
 
       {/* プロジェクト削除確認ダイアログ */}

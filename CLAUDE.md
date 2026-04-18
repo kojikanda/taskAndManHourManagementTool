@@ -667,8 +667,9 @@ frontend/src/
 - ヘッダーのレスポンシブ対応
   - `app/projects/page.tsx`・`components/TaskListView.tsx` → タイトルとボタンを並べるヘッダー `Box` に `flexDirection: { xs: "column", sm: "row" }`・`alignItems: { xs: "flex-start", sm: "center" }`・`gap: 1` を追加。スマホ時に改行が発生していた問題を解消。
 
-- プロジェクト作成後のフィルタ自動切り替え
-  - `app/projects/page.tsx` → `CreateProjectModal` の `onCreated` で `setFilter("owner")` を呼び出し、プロジェクト作成直後に「管理対象」フィルタへ自動切り替え。作成したプロジェクトが一覧に表示されない問題を解消。
+- プロジェクト作成後のフィルタ自動切り替え（実装・撤退）
+  - 一度 `onCreated` で `setFilter("owner")` を呼び出す実装を行ったが、`setFilter`（非同期）と `refetch` の実行タイミングのズレによるレースコンディションが発生し、追加したプロジェクトが表示されないことがあった。`AbortController` による対策も試みたが改善されず、最終的に元の実装（フィルタ切り替えなし・`refetch` のみ）に戻した。
+  - プロジェクト作成後に追加したプロジェクトを確認したい場合は、ユーザが手動でフィルタを「管理対象」または「全て」に切り替える運用とする。
 
 - モーダル外クリック・Escキーで閉じないよう修正
   - `CreateWorkLogModal.tsx`・`CreateProjectModal.tsx`・`CreateTaskModal.tsx` → `Dialog` の `onClose` に `reason` の判定を追加。`backdropClick`（モーダル外クリック）と `escapeKeyDown`（Escキー）のときは閉じないよう変更。入力途中の誤操作で入力内容が消える問題を解消。
@@ -676,9 +677,17 @@ frontend/src/
 - プロジェクト削除をメニュー（⋮）方式に変更
   - `app/projects/page.tsx` → ホバー時のゴミ箱アイコン表示をやめ、タスク一覧と同様の ⋮ ボタン常時表示 → メニュー → 確認ダイアログ の2ステップに変更。スマホではホバー操作ができないため。`hoveredProjectId` state を削除し、`actionMenu` / `actionMenuOpen` state に置き換え。
 
-- スクロール時のコンテンツ切れ対応
-  - `AppLayout.tsx` → 外側 `Box` の `height: 100vh` を `height: 100dvh` に変更。iOS Safari はスクロール中に URL バーが表示・非表示を切り替えるため `100vh` の計算値がズレてコンテンツがクリッピングされる問題を解消。`dvh`（Dynamic Viewport Height）は URL バーの状態に追従して動的に計算される。(→これでiOSのChromeは現象が発生しなくなった。)
-  - `AppLayout.tsx` → visibilitychangeで強制再描画を行うuseEffectを入れることにより、iOSのSafariで現象が出る頻度が減った。今回の問題はiOS(Safari)のアプリ復帰時などでレイアウトが再計算されない問題が関わっている可能性が高い。これを強制再描画で回避。(実際に実務で使われるハックとのこと。)
+- iOS Safari スクロール安定化（段階的対応）
+  - `AppLayout.tsx` → 外側 `Box` の `height: 100vh` を `height: 100dvh` に変更。iOS Safari はスクロール中に URL バーが表示・非表示を切り替えるため `100vh` の計算値がズレてコンテンツがクリッピングされる問題を解消。iOS Chrome も同様に改善。
+  - `AppLayout.tsx` → `position: "fixed"` の AppBar を廃止し、外側 `Box` を `flexDirection: "column"` に変更。AppBar を `position: "static"` でフロー内に配置することで、iOS Safari が fixed 要素によるスクロール領域の計算ズレを起こす問題を回避。`main` の `pt` による高さ補正（`calc(48px + 24px)`）も不要になり削除。
+  - `AppLayout.tsx` → `main` Box に以下の CSS を追加してスクロールをさらに安定化。
+    - `WebkitOverflowScrolling: "touch"` → iOS 13未満向けのモメンタムスクロール有効化（現行iOS では標準動作だが残置）
+    - `overscrollBehaviorY: "none"` → スクロールが親要素へ伝播するのを防止
+    - `transform: "translate3d(0,0,0)"` / `WebkitTransform` → GPU レイヤーへの強制昇格
+    - `backfaceVisibility: "hidden"` / `WebkitBackfaceVisibility` → GPU 合成時のちらつき防止
+    - `perspective: 1000` / `WebkitPerspective` → 3D レンダリングコンテキスト生成でGPU加速を補強
+    - `willChange: "transform"` → ブラウザへ GPU レイヤー作成を事前通知
+    - `height: "100%"` → 親の `dvh` を継承させスクロール領域を確定
 
 - モバイルカードのリップルエフェクト追加
   - `TaskListView.tsx` → モバイル表示のタスクカードを `Paper` + `onClick` から `Card` + `CardActionArea` に変更。`CardActionArea` により、プロジェクト一覧カードと同様のタップ時リップルエフェクトを追加。⋮ ボタンはリップルの二重描画を避けるため `CardActionArea` の外側に `position: absolute` で配置。
