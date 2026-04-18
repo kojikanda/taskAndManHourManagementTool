@@ -61,14 +61,14 @@ export default function AppLayout({ children }: Props) {
     <Box
       sx={{
         display: "flex",
+        flexDirection: "column",
         height: "100dvh",
-        overflow: "hidden",
         bgcolor: "grey.50",
       }}
     >
       {/* スマホ用ヘッダー（smより小さいときのみ表示） */}
       <AppBar
-        position="fixed"
+        position="static" // これによりAppBarの高さが自動計算され、mainが残りの画面を埋める
         sx={{
           display: { sm: "none" },
           bgcolor: "grey.900",
@@ -93,22 +93,33 @@ export default function AppLayout({ children }: Props) {
         </Toolbar>
       </AppBar>
 
-      <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            p: 3,
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch", // 完成スクロール安定化
+            overscrollBehaviorY: "none", // 背後の要素へのスクロール伝播を防ぐ
 
-      <Box
-        component="main"
-        sx={{
-          flex: 1,
-          p: 3,
-          overflow: "auto",
-          WebkitOverflowScrolling: "touch",
-          // スマホ時はAppBarの高さ分だけ上にパディングを追加
-          // 48pxはToolbar(variant="dense")の高さ、24pxはsm: 3で指定しているのと同じ値(8x3=24px)
-          pt: { xs: "calc(48px + 24px)", sm: 3 },
-          ml: { sm: DRAWER_WIDTH + "px" },
-        }}
-      >
-        {children}
+            // GPUアクセラレーション（標準とWebkit両方併記が確実）
+            transform: "translate3d(0,0,0)",
+            WebkitTransform: "translate3d(0,0,0)",
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            perspective: 1000,
+            WebkitPerspective: 1000,
+
+            willChange: "transform", // ブラウザにレイヤー作成を促す
+            height: "100%", // 親のdvhを継承させる
+            ml: { sm: DRAWER_WIDTH + "px" },
+            bgcolor: "grey.50",
+          }}
+        >
+          {children}
+        </Box>
       </Box>
     </Box>
   );

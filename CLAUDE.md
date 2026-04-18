@@ -677,7 +677,8 @@ frontend/src/
   - `app/projects/page.tsx` → ホバー時のゴミ箱アイコン表示をやめ、タスク一覧と同様の ⋮ ボタン常時表示 → メニュー → 確認ダイアログ の2ステップに変更。スマホではホバー操作ができないため。`hoveredProjectId` state を削除し、`actionMenu` / `actionMenuOpen` state に置き換え。
 
 - スクロール時のコンテンツ切れ対応
-  - `AppLayout.tsx` → 外側 `Box` の `height: 100vh` を `height: 100dvh` に変更。iOS Safari はスクロール中に URL バーが表示・非表示を切り替えるため `100vh` の計算値がズレてコンテンツがクリッピングされる問題を解消。`dvh`（Dynamic Viewport Height）は URL バーの状態に追従して動的に計算される。
+  - `AppLayout.tsx` → 外側 `Box` の `height: 100vh` を `height: 100dvh` に変更。iOS Safari はスクロール中に URL バーが表示・非表示を切り替えるため `100vh` の計算値がズレてコンテンツがクリッピングされる問題を解消。`dvh`（Dynamic Viewport Height）は URL バーの状態に追従して動的に計算される。(→これでiOSのChromeは現象が発生しなくなった。)
+  - `AppLayout.tsx` → visibilitychangeで強制再描画を行うuseEffectを入れることにより、iOSのSafariで現象が出る頻度が減った。今回の問題はiOS(Safari)のアプリ復帰時などでレイアウトが再計算されない問題が関わっている可能性が高い。これを強制再描画で回避。(実際に実務で使われるハックとのこと。)
 
 - モバイルカードのリップルエフェクト追加
   - `TaskListView.tsx` → モバイル表示のタスクカードを `Paper` + `onClick` から `Card` + `CardActionArea` に変更。`CardActionArea` により、プロジェクト一覧カードと同様のタップ時リップルエフェクトを追加。⋮ ボタンはリップルの二重描画を避けるため `CardActionArea` の外側に `position: absolute` で配置。
