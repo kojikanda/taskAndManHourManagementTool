@@ -3,6 +3,7 @@
 import {
   Box,
   Card,
+  CardActionArea,
   CardContent,
   Chip,
   Grid,
@@ -204,46 +205,54 @@ export default function DashboardPage() {
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               {tasks.map((task) => (
-                <Paper
-                  key={task.id}
-                  variant="outlined"
-                  sx={{ p: 2, cursor: "pointer", borderRadius: 2 }}
-                  onClick={() =>
-                    router.push(`/projects/${task.projectId}/tasks/${task.id}`)
-                  }
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                    {task.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {task.projectName}
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      gap: 1,
-                      mt: 1,
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                    }}
+                <Card key={task.id} variant="outlined" sx={{ borderRadius: 2 }}>
+                  <CardActionArea
+                    onClick={() =>
+                      router.push(
+                        `/projects/${task.projectId}/tasks/${task.id}`,
+                      )
+                    }
+                    sx={{ p: 2 }}
                   >
-                    <Chip
-                      label={task.status}
-                      size="small"
-                      sx={{ ...STATUS_STYLE[task.status], fontWeight: 600 }}
-                    />
-                    <Chip
-                      label={task.priority}
-                      size="small"
-                      sx={{ ...PRIORITY_STYLE[task.priority], fontWeight: 600 }}
-                    />
-                    {task.dueDate && (
-                      <Typography variant="caption" color="text.secondary">
-                        期限: {formatDate(task.dueDate)}
-                      </Typography>
-                    )}
-                  </Box>
-                </Paper>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, mb: 0.5 }}
+                    >
+                      {task.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {task.projectName}
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 1,
+                        mt: 1,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Chip
+                        label={task.status}
+                        size="small"
+                        sx={{ ...STATUS_STYLE[task.status], fontWeight: 600 }}
+                      />
+                      <Chip
+                        label={task.priority}
+                        size="small"
+                        sx={{
+                          ...PRIORITY_STYLE[task.priority],
+                          fontWeight: 600,
+                        }}
+                      />
+                      {task.dueDate && (
+                        <Typography variant="caption" color="text.secondary">
+                          期限: {formatDate(task.dueDate)}
+                        </Typography>
+                      )}
+                    </Box>
+                  </CardActionArea>
+                </Card>
               ))}
             </Box>
           )

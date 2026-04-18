@@ -676,6 +676,13 @@ frontend/src/
 - プロジェクト削除をメニュー（⋮）方式に変更
   - `app/projects/page.tsx` → ホバー時のゴミ箱アイコン表示をやめ、タスク一覧と同様の ⋮ ボタン常時表示 → メニュー → 確認ダイアログ の2ステップに変更。スマホではホバー操作ができないため。`hoveredProjectId` state を削除し、`actionMenu` / `actionMenuOpen` state に置き換え。
 
+- スクロール時のコンテンツ切れ対応
+  - `AppLayout.tsx` → 外側 `Box` の `height: 100vh` を `height: 100dvh` に変更。iOS Safari はスクロール中に URL バーが表示・非表示を切り替えるため `100vh` の計算値がズレてコンテンツがクリッピングされる問題を解消。`dvh`（Dynamic Viewport Height）は URL バーの状態に追従して動的に計算される。
+
+- モバイルカードのリップルエフェクト追加
+  - `TaskListView.tsx` → モバイル表示のタスクカードを `Paper` + `onClick` から `Card` + `CardActionArea` に変更。`CardActionArea` により、プロジェクト一覧カードと同様のタップ時リップルエフェクトを追加。⋮ ボタンはリップルの二重描画を避けるため `CardActionArea` の外側に `position: absolute` で配置。
+  - `app/dashboard/page.tsx` → 自担当タスク（直近）のモバイルカードを同様に `Card` + `CardActionArea` に変更（⋮ ボタンなし）。
+
 ### 次のステップ
 
 現時点で全機能のデプロイ完了・スマホ対応完了。必要に応じて以下を対応。

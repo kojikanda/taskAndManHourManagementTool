@@ -27,6 +27,8 @@ import {
   DialogContentText,
   DialogActions,
   IconButton,
+  Card,
+  CardActionArea,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
@@ -690,106 +692,105 @@ export default function TaskListView({
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               {filteredSortedTasks.map((task) => (
-                <Paper
+                <Card
                   key={task.id}
                   variant="outlined"
-                  sx={{ p: 2, cursor: "pointer", borderRadius: 2 }}
-                  onClick={() =>
-                    router.push(`/projects/${task.projectId}/tasks/${task.id}`)
-                  }
+                  sx={{ borderRadius: 2, position: "relative" }}
                 >
-                  {/* タスク名 + ⋮ メニュー */}
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
+                  {/* ⋮ ボタンをCardActionArea の外に出してabsolute配置 */}
+                  {/* ⋮ ボタンをクリックしたとき、CardActionAreaにイベントが伝播して、リップル効果が二重に出ないようにするため、外に出している */}
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActionMenu({
+                        anchor: e.currentTarget,
+                        taskId: task.id,
+                      });
+                      setActionMenuOpen(true);
                     }}
+                    sx={{ position: "absolute", top: 4, right: 4, zIndex: 1 }}
                   >
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: 600, flex: 1, mr: 1 }}
-                    >
+                    <MoreVertIcon fontSize="small" />
+                  </IconButton>
+
+                  <CardActionArea
+                    onClick={() =>
+                      router.push(
+                        `/projects/${task.projectId}/tasks/${task.id}`,
+                      )
+                    }
+                    sx={{ p: 2 }}
+                  >
+                    {/* タスク名（右の⋮ボタンと被らないよう pr: 4） */}
+                    <Typography variant="body2" sx={{ fontWeight: 600, pr: 4 }}>
                       {task.title}
                     </Typography>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActionMenu({
-                          anchor: e.currentTarget,
-                          taskId: task.id,
-                        });
-                        setActionMenuOpen(true);
+
+                    {/* プロジェクト名 */}
+                    <Typography variant="caption" color="text.secondary">
+                      {task.projectName}
+                    </Typography>
+
+                    {/* ステータス・優先度・期限 */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 1,
+                        mt: 1,
+                        flexWrap: "wrap",
+                        alignItems: "center",
                       }}
                     >
-                      <MoreVertIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
-
-                  {/* プロジェクト名 */}
-                  <Typography variant="caption" color="text.secondary">
-                    {task.projectName}
-                  </Typography>
-
-                  {/* ステータス・優先度・期限 */}
-                  <Box
-                    sx={{
-                      display: "flex",
-                      gap: 1,
-                      mt: 1,
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Chip
-                      label={task.status}
-                      size="small"
-                      sx={{
-                        ...STATUS_STYLE[task.status],
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setStatusMenu({
-                          anchor: e.currentTarget,
-                          taskId: task.id,
-                        });
-                        setStatusMenuOpen(true);
-                      }}
-                    />
-                    <Chip
-                      label={task.priority}
-                      size="small"
-                      sx={{
-                        ...PRIORITY_STYLE[task.priority],
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPriorityMenu({
-                          anchor: e.currentTarget,
-                          taskId: task.id,
-                        });
-                        setPriorityMenuOpen(true);
-                      }}
-                    />
-                    {task.dueDate && (
-                      <Typography variant="caption" color="text.secondary">
-                        期限: {formatDate(task.dueDate)}
-                      </Typography>
-                    )}
-                  </Box>
-
-                  {/* 担当者 */}
-                  {task.assignedUsers.length > 0 && (
-                    <Box sx={{ mt: 1.5 }}>
-                      <AssignedUsersCell users={task.assignedUsers} />
+                      <Chip
+                        label={task.status}
+                        size="small"
+                        sx={{
+                          ...STATUS_STYLE[task.status],
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStatusMenu({
+                            anchor: e.currentTarget,
+                            taskId: task.id,
+                          });
+                          setStatusMenuOpen(true);
+                        }}
+                      />
+                      <Chip
+                        label={task.priority}
+                        size="small"
+                        sx={{
+                          ...PRIORITY_STYLE[task.priority],
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPriorityMenu({
+                            anchor: e.currentTarget,
+                            taskId: task.id,
+                          });
+                          setPriorityMenuOpen(true);
+                        }}
+                      />
+                      {task.dueDate && (
+                        <Typography variant="caption" color="text.secondary">
+                          期限: {formatDate(task.dueDate)}
+                        </Typography>
+                      )}
                     </Box>
-                  )}
-                </Paper>
+
+                    {/* 担当者 */}
+                    {task.assignedUsers.length > 0 && (
+                      <Box sx={{ mt: 1.5 }}>
+                        <AssignedUsersCell users={task.assignedUsers} />
+                      </Box>
+                    )}
+                  </CardActionArea>
+                </Card>
               ))}
             </Box>
           )}
