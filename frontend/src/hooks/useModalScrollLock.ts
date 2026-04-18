@@ -1,27 +1,27 @@
 import { useEffect } from "react";
 
 /**
- * モーダルが開いているとき、main-scroll-container のスクロールをロックするカスタムフック。
+ * モーダルが開いているとき、bodyのスクロールをロックするカスタムフック。
  * スマホでキーボード表示時に背景がスクロールしてモーダルのタップ位置がズレる問題を防ぐ。
  *
  * @param open true: モーダルを開いている, false: モーダルを閉じている
  */
 export function useModalScrollLock(open: boolean) {
   useEffect(() => {
-    const el = document.getElementById("main-scroll-container");
-    if (!el) return;
-
     if (open) {
-      el.style.overflow = "hidden";
+      const scrollY = window.scrollY;
 
-      // iOS Safari, Chromeではoverflowだけではタッチスクロールを止められないため、
-      // touchmoveイベントをキャンセルして強制的にスクロールを防止する
-      const preventTouch = (e: TouchEvent) => e.preventDefault();
-      el.addEventListener("touchmove", preventTouch, { passive: false });
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
 
       return () => {
-        el.style.overflow = "";
-        el.removeEventListener("touchmove", preventTouch);
+        const y = document.body.style.top;
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+
+        window.scrollTo(0, parseInt(y || "0") * -1);
       };
     }
   }, [open]);
