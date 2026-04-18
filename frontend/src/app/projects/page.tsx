@@ -78,8 +78,10 @@ export default function ProjectsPage() {
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: { xs: "flex-start", sm: "center" },
+          gap: 1,
           mb: 2,
         }}
       >
@@ -193,7 +195,11 @@ export default function ProjectsPage() {
       <CreateProjectModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onCreated={refetch}
+        onCreated={() => {
+          // 強制的に「管理対象」に切り替えて追加したプロジェクトを表示
+          setFilter("owner");
+          refetch();
+        }}
       />
 
       {/* プロジェクト削除確認ダイアログ */}

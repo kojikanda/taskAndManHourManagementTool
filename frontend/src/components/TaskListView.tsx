@@ -487,8 +487,10 @@ export default function TaskListView({
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: { xs: "flex-start", sm: "center" },
+          gap: 1,
           mb: 2,
         }}
       >
