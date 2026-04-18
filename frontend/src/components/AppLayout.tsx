@@ -77,6 +77,7 @@ export default function AppLayout({ children }: Props) {
 
       <Box
         component="main"
+        id="main-scroll-container"
         sx={{
           flex: 1,
           p: 3,

@@ -23,6 +23,7 @@ import { useSnackbar } from "notistack";
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { CreateTaskRequest, User } from "@/types";
+import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 
 type Props = {
   open: boolean;
@@ -57,6 +58,9 @@ export default function CreateTaskModal({
       assignedUserIds: [],
     },
   });
+
+  // モーダルの裏の要素をロックするカスタムフック
+  useModalScrollLock(open);
 
   // モーダルを開いたときにユーザ一覧を取得
   useEffect(() => {

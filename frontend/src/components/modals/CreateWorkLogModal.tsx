@@ -15,6 +15,7 @@ import { useForm, Controller } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import api from "@/lib/api";
 import { CreateWorkLogRequest } from "@/types";
+import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 
 type Props = {
   open: boolean;
@@ -48,6 +49,9 @@ export default function CreateWorkLogModal({
       memo: "",
     },
   });
+
+  // モーダルの裏の要素をロックするカスタムフック
+  useModalScrollLock(open);
 
   // 登録ボタン押下時のイベントハンドラ
   const onSubmit = async (data: CreateWorkLogRequest) => {
