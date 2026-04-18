@@ -34,6 +34,26 @@ export default function AppLayout({ children }: Props) {
     }
   }, [user, initialized, router]);
 
+  // iOSのSafariで描画崩れを起こす件に対して、強制的に再描画を促す処置
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // 軽めの再描画トリガ
+        requestAnimationFrame(() => {
+          document.body.style.transform = "translateZ(0)";
+          void document.body.offsetHeight; // reflow
+          document.body.style.transform = "";
+        });
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
   // 初期化前 or 未ログインは何も表示しない
   if (!initialized || !user) return null;
 
