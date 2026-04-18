@@ -472,10 +472,10 @@ frontend/src/
   - MUI v9 インストール済み
   - 起動確認済み（port 3000）
 
-### 本番環境構成（予定）
+### 本番環境構成（完了）
 
 - Frontend: Vercel（Next.js）
-- Backend: Render（Spring Boot）
+- Backend: Render（Spring Boot・Docker コンテナ）
 - DB: Neon（PostgreSQL）
 
 ### バックエンド実装（完了）
@@ -603,14 +603,43 @@ frontend/src/
   - `@mui/x-charts` の横棒グラフで `layout="horizontal"` + `yAxis[0].width` によりラベルの切れを防止
   - `AppLayout` を `height: 100vh` + `overflow: hidden` にすることでサイドバーの追従スクロールを解消
 
-### 次のステップ
+### 本番環境デプロイ（完了）
 
 ⑧ 本番環境へのデプロイ
 
-- Frontend: Vercel へのデプロイ（Next.js）
-- Backend: Render へのデプロイ（Spring Boot）
-- DB: Neon への接続設定（PostgreSQL）
-- 環境変数の設定（JWT_SECRET, CORS_ALLOWED_ORIGINS など）
+- Flyway導入（スキーママイグレーション管理）
+  - `pom.xml` に `flyway-core` / `flyway-database-postgresql` 依存を追加
+  - `db/migration/` に V1〜V5 のマイグレーションSQLを作成（users / projects / tasks / work_logs / task_assignments）
+  - `application-prod.properties` の `ddl-auto` を `none` に変更
+  - `application-dev.properties` に `spring.flyway.enabled=false` を追加（dev環境はddl-auto=updateで管理）
+
+- 設定ファイルの整備
+  - `application.properties` → `spring.profiles.active=${SPRING_PROFILES_ACTIVE:dev}` に変更（環境変数未設定時はdevがデフォルト）
+  - `application-prod.properties` → DB接続・JWT・CORS・ポートを環境変数参照に統一
+  - `application-dev.properties` → DB接続情報を環境変数参照に変更（`.env.local` から読み込む）
+  - `backend/task-management/.gitignore` から `application-prod.properties` の除外設定を削除し、gitに登録
+
+- バックエンド（Render）
+  - `backend/task-management/Dockerfile` を追加（マルチステージビルド・eclipse-temurin:17使用）
+  - RenderでDockerを選択し、Root Directoryを `backend/task-management` に設定
+  - 環境変数: `SPRING_PROFILES_ACTIVE`, `DATABASE_URL`（JDBC形式・認証情報なし）, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`, `PORT`
+  - Renderが自動設定する `PORT` 環境変数をSpring Bootが読み取り、ポート10000で起動
+
+- フロントエンド（Vercel）
+  - Root Directoryを `frontend` に設定
+  - 環境変数: `NEXT_PUBLIC_API_BASE_URL`（RenderのサービスURL）
+
+- VSCode開発環境の整備
+  - `launch.json` に `envFile: ${workspaceFolder}/.env.local` を追加（Spring Boot起動時にルート直下の `.env.local` を読み込む）
+  - ルート直下に `.env.local` を作成（バックエンド用・gitignore対象）
+  - ルート `.gitignore` に `.env.local` / `.env.prod` を追加
+
+### 次のステップ
+
+現時点で全機能のデプロイ完了。必要に応じて以下を対応。
+
+- 全機能の本番環境での動作確認
+- 追加機能の実装
 
 ---
 

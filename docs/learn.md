@@ -1627,6 +1627,7 @@ useFormのregisterはネイティブの&lt;input&gt;要素に直接参照を渡�
 - slotProps={{ primary: { sx: { fontSize: 14 } } }} → slotPropsを利用して、プライマリテキストのカスタマイズを行う
   - slotProps: ListItemTextのような複合コンポーネントにおいて、内部で使用されている特定の要素（スロット）にpropsを渡すためのプロパティ。
   - primary: ListItemText のメインテキスト（Typographyコンポーネント）を指す。
+- edge="start" → ボタンやアイコンなどの要素をコンテナの左端（開始位置）に配置・調整する
 
 ## ■CSS
 
@@ -2042,6 +2043,8 @@ Vercelダッシュボードで Add New → Project を選択し、GitHubリポ�
 | Build Command    | そのまま（next build）                              |
 | Output Directory | そのまま                                            |
 
+Build CommoandとOutput Directoryは何も入力しなくてもOK。
+
 ### ③環境変数を設定
 
 Environment Variables に以下を追加する。
@@ -2056,3 +2059,19 @@ RenderのサービスURLは Renderダッシュボードの該当サービスペ�
 ### ④Deploy実行
 
 Deploy ボタンを押してデプロイを開始する。
+
+## 5. Rencerの環境変数を修正
+
+### ①CORS設定
+
+CORS_ALLOWED_ORIGINS=Vercelで発行されたURLに変更。
+
+→その後、再デプロイする必要あり。
+
+### ②タイムゾーン指定
+
+```
+TZ=Asia/Tokyo
+```
+
+これを設定しないと、世界標準時刻で動いてしまう。

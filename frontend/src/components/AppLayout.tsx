@@ -1,10 +1,13 @@
 "use client";
 
-import { Box } from "@mui/material";
+import { useState } from "react";
+import { AppBar, Box, IconButton, Toolbar, Typography } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 import Sidebar from "@/components/Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { DRAWER_WIDTH } from "@/lib/commonStyles";
 
 type Props = {
   children: React.ReactNode;
@@ -17,6 +20,7 @@ type Props = {
 export default function AppLayout({ children }: Props) {
   const { user, initialized } = useAuth();
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // 未ログインはログイン画面へ
   useEffect(() => {
@@ -42,8 +46,47 @@ export default function AppLayout({ children }: Props) {
         bgcolor: "grey.50",
       }}
     >
-      <Sidebar />
-      <Box component="main" sx={{ flex: 1, p: 3, overflow: "auto" }}>
+      {/* スマホ用ヘッダー（smより小さいときのみ表示） */}
+      <AppBar
+        position="fixed"
+        sx={{
+          display: { sm: "none" },
+          bgcolor: "grey.900",
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+        }}
+      >
+        <Toolbar variant="dense">
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={() => setMobileOpen((prev) => !prev)}
+            sx={{ mr: 1 }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography
+            variant="subtitle1"
+            sx={{ fontSize: 14, fontWeight: 600 }}
+          >
+            タスク工数管理ツール
+          </Typography>
+        </Toolbar>
+      </AppBar>
+
+      <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+
+      <Box
+        component="main"
+        sx={{
+          flex: 1,
+          p: 3,
+          overflow: "auto",
+          // スマホ時はAppBarの高さ分だけ上にパディングを追加
+          // 48pxはToolbar(variant="dense")の高さ、24pxはsm: 3で指定しているのと同じ値(8x3=24px)
+          pt: { xs: "calc(48px + 24px)", sm: 3 },
+          ml: { sm: DRAWER_WIDTH + "px" },
+        }}
+      >
         {children}
       </Box>
     </Box>

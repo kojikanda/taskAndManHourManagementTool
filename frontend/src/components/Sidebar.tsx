@@ -2,6 +2,7 @@
 
 import {
   Box,
+  Drawer,
   List,
   ListItemButton,
   ListItemIcon,
@@ -17,11 +18,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSnackbar } from "notistack";
 import { useAuth } from "@/contexts/AuthContext";
+import { DRAWER_WIDTH } from "@/lib/commonStyles";
+
+type Props = {
+  mobileOpen: boolean;
+  onClose: () => void;
+};
 
 /**
  * サイドバーコンポーネント
  */
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen, onClose }: Props) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const { enqueueSnackbar } = useSnackbar();
@@ -30,25 +37,32 @@ export default function Sidebar() {
     logout();
     enqueueSnackbar("ログアウトしました", { variant: "info" });
     router.push("/");
+    // スマホでログアウト後にドロワーを閉じる
+    onClose();
   };
 
-  return (
+  // サイドバーの中身（PC・スマホ共通）
+  const drawerContent = (
     <Box
       sx={{
-        width: 220,
-        flexShrink: 0,
+        width: DRAWER_WIDTH,
         bgcolor: "grey.900",
         color: "white",
         display: "flex",
         flexDirection: "column",
-        minHeight: "100vh",
+        height: "100%",
       }}
     >
       {/* アプリ名, ログインしているユーザ名 */}
-      <Box sx={{ px: 2, py: 2.5 }}>
+      <Box sx={{ px: 2, py: 2.5, mt: { xs: "48px", sm: 2 } }}>
         <Typography
           variant="subtitle2"
-          sx={{ color: "grey.400", fontSize: 11, letterSpacing: 1 }}
+          sx={{
+            display: { xs: "none", sm: "block" },
+            color: "grey.400",
+            fontSize: 11,
+            letterSpacing: 1,
+          }}
         >
           タスク工数管理ツール
         </Typography>
@@ -66,7 +80,12 @@ export default function Sidebar() {
 
       {/* ナビゲーションリンク */}
       <List sx={{ flex: 1, py: 1 }}>
-        <ListItemButton component={Link} href="/dashboard" sx={listItemSx}>
+        <ListItemButton
+          component={Link}
+          href="/dashboard"
+          sx={listItemSx}
+          onClick={onClose}
+        >
           <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
             <DashboardIcon fontSize="small" />
           </ListItemIcon>
@@ -76,7 +95,12 @@ export default function Sidebar() {
           />
         </ListItemButton>
 
-        <ListItemButton component={Link} href="/projects" sx={listItemSx}>
+        <ListItemButton
+          component={Link}
+          href="/projects"
+          sx={listItemSx}
+          onClick={onClose}
+        >
           <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
             <FolderIcon fontSize="small" />
           </ListItemIcon>
@@ -90,6 +114,7 @@ export default function Sidebar() {
           component={Link}
           href="/tasks/my?fresh=1"
           sx={listItemSx}
+          onClick={onClose}
         >
           <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
             <AssignmentIndIcon fontSize="small" />
@@ -117,9 +142,47 @@ export default function Sidebar() {
       </List>
     </Box>
   );
+
+  return (
+    <>
+      {/* スマホ用: temporaryドロワー */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onClose}
+        // スマホでのパフォーマンス向上
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: "block", sm: "none" },
+          "& .MuiDrawer-paper": {
+            width: DRAWER_WIDTH,
+            boxSizing: "border-box",
+            bgcolor: "grey.900",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      {/* PC用: permanentドロワー */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: "none", sm: "block" },
+          "& .MuiDrawer-paper": {
+            width: DRAWER_WIDTH,
+            boxSizing: "border-box",
+            bgcolor: "grey.900",
+          },
+        }}
+        open
+      >
+        {drawerContent}
+      </Drawer>
+    </>
+  );
 }
 
-// リストアイテムの共通スタイル
 const listItemSx = {
   color: "grey.300",
   borderRadius: 1,
