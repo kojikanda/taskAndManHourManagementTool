@@ -468,9 +468,9 @@ export default function EstimateActualView({ projectId }: Props) {
                   {
                     data: sortedTasks.map((t) => t.taskTitle),
                     scaleType: "band",
-                    // タスク名の文字数に応じてラベルの広さを決定する。ただし最大は250px。
+                    // タスク名の文字数に応じてラベルの広さを決定する。ただし最大はPC版: 250px, モバイル版: 175px。
                     width: Math.min(
-                      250,
+                      isMobile ? 175 : 250,
                       Math.max(...sortedTasks.map((p) => p.taskTitle.length)) *
                         15,
                     ),
