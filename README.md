@@ -96,7 +96,7 @@ https://taskmanagementtool.kanda-software-labo.com/
 - **フロントエンド**: Next.js (React, App Router), TypeScript
 - **スタイリング/UI**: MUI (Material UI) v9
 - **バックエンド**: Java / Spring Boot 3
-- **DB**: PostgreSQL (NEON)
+- **DB**: PostgreSQL (Neon)
 - **ORM**: Spring Data JPA
 - **認証**: JWT (JJWT)
 - **デプロイ**: Vercel (フロントエンド) / Render (バックエンド) / Neon (DB)
