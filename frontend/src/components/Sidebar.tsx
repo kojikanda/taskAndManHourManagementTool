@@ -173,6 +173,7 @@ export default function Sidebar({ mobileOpen, onClose }: Props) {
             width: DRAWER_WIDTH,
             boxSizing: "border-box",
             bgcolor: "grey.900",
+            overflow: "hidden",
           },
         }}
         open
