@@ -5,9 +5,10 @@
 JWT認証を備えた、タスクと作業工数を一元管理するWebアプリです。  
 プロジェクト・タスクの管理に加え、作業ログの記録・見積と実績の比較・ダッシュボードによる進捗把握ができます。
 
-
-https://github.com/user-attachments/assets/0939006b-eab3-48bd-b521-76f572d88140
-
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/0939006b-eab3-48bd-b521-76f572d88140" width="100%" controls muted>
+  </video>
+</p>
 
 ---
 
